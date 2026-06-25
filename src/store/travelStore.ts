@@ -2,16 +2,30 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Trip, ExchangeRate, Currency } from '../types/travel';
 import { sampleTrip } from './sampleData';
+import { pushTrip, fetchTrip, generateShareCode } from '../lib/cloudSync';
+import { isSupabaseReady } from '../lib/supabase';
 
 interface TravelStore {
   trips: Trip[];
   activeTrip: string | null;
   exchangeRates: ExchangeRate[];
+  syncStatus: 'idle' | 'syncing' | 'synced' | 'error' | 'offline';
+
   addTrip: (trip: Omit<Trip, 'id' | 'createdAt' | 'updatedAt'>) => string;
   updateTrip: (id: string, updates: Partial<Trip>) => void;
   deleteTrip: (id: string) => void;
   setActiveTrip: (id: string | null) => void;
   getTrip: (id: string) => Trip | undefined;
+
+  /** 클라우드 동기화 활성화: 공유 코드 생성 후 Supabase에 업로드 */
+  enableCloudSync: (tripId: string) => Promise<string | null>;
+  /** 변경사항을 클라우드에 저장 (cloud-enabled 여행만) */
+  syncToCloud: (tripId: string) => Promise<void>;
+  /** 공유 코드로 클라우드에서 여행 불러오기 */
+  joinByCode: (code: string) => Promise<'ok' | 'not_found' | 'no_supabase'>;
+  /** 외부에서 받은 실시간 업데이트를 로컬에 반영 */
+  applyRemoteUpdate: (trip: Trip) => void;
+
   setExchangeRate: (from: Currency, to: Currency, rate: number) => void;
   convertAmount: (amount: number, from: Currency, to: Currency) => number;
 }
@@ -21,6 +35,7 @@ export const useTravelStore = create<TravelStore>()(
     (set, get) => ({
       trips: [sampleTrip],
       activeTrip: sampleTrip.id,
+      syncStatus: 'idle',
       exchangeRates: [
         { from: 'KRW', to: 'PHP', rate: 0.042, updatedAt: new Date().toISOString() },
         { from: 'PHP', to: 'KRW', rate: 23.8, updatedAt: new Date().toISOString() },
@@ -44,6 +59,11 @@ export const useTravelStore = create<TravelStore>()(
             t.id === id ? { ...t, ...updates, updatedAt: new Date().toISOString() } : t
           ),
         }));
+        // 변경 후 클라우드 자동 동기화
+        const trip = get().trips.find((t) => t.id === id);
+        if (trip?.cloudEnabled && trip?.shareCode) {
+          get().syncToCloud(id);
+        }
       },
 
       deleteTrip: (id) => {
@@ -54,21 +74,79 @@ export const useTravelStore = create<TravelStore>()(
       },
 
       setActiveTrip: (id) => set({ activeTrip: id }),
-
       getTrip: (id) => get().trips.find((t) => t.id === id),
 
+      enableCloudSync: async (tripId) => {
+        if (!isSupabaseReady) return null;
+        const trip = get().trips.find((t) => t.id === tripId);
+        if (!trip) return null;
+
+        const code = trip.shareCode ?? generateShareCode();
+        set({ syncStatus: 'syncing' });
+        try {
+          const updatedTrip = { ...trip, shareCode: code, cloudEnabled: true };
+          await pushTrip(updatedTrip);
+          set((s) => ({
+            trips: s.trips.map((t) => t.id === tripId ? updatedTrip : t),
+            syncStatus: 'synced',
+          }));
+          return code;
+        } catch {
+          set({ syncStatus: 'error' });
+          return null;
+        }
+      },
+
+      syncToCloud: async (tripId) => {
+        const trip = get().trips.find((t) => t.id === tripId);
+        if (!trip?.cloudEnabled || !trip?.shareCode) return;
+        set({ syncStatus: 'syncing' });
+        try {
+          await pushTrip(trip);
+          set({ syncStatus: 'synced' });
+        } catch {
+          set({ syncStatus: 'error' });
+        }
+      },
+
+      joinByCode: async (code) => {
+        if (!isSupabaseReady) return 'no_supabase';
+        set({ syncStatus: 'syncing' });
+        try {
+          const trip = await fetchTrip(code.toUpperCase());
+          if (!trip) { set({ syncStatus: 'idle' }); return 'not_found'; }
+          // 이미 있으면 업데이트, 없으면 추가
+          set((s) => {
+            const exists = s.trips.find((t) => t.shareCode === code.toUpperCase());
+            return {
+              trips: exists
+                ? s.trips.map((t) => t.shareCode === code.toUpperCase() ? trip : t)
+                : [...s.trips, trip],
+              activeTrip: trip.id,
+              syncStatus: 'synced',
+            };
+          });
+          return 'ok';
+        } catch {
+          set({ syncStatus: 'error' });
+          return 'not_found';
+        }
+      },
+
+      applyRemoteUpdate: (trip) => {
+        set((s) => ({
+          trips: s.trips.map((t) => t.id === trip.id ? trip : t),
+          syncStatus: 'synced',
+        }));
+      },
+
       setExchangeRate: (from, to, rate) => {
-        set((s) => {
-          const existing = s.exchangeRates.filter(
-            (r) => !(r.from === from && r.to === to)
-          );
-          return {
-            exchangeRates: [
-              ...existing,
-              { from, to, rate, updatedAt: new Date().toISOString() },
-            ],
-          };
-        });
+        set((s) => ({
+          exchangeRates: [
+            ...s.exchangeRates.filter((r) => !(r.from === from && r.to === to)),
+            { from, to, rate, updatedAt: new Date().toISOString() },
+          ],
+        }));
       },
 
       convertAmount: (amount, from, to) => {

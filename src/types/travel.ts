@@ -83,4 +83,6 @@ export interface Trip {
   locations: TravelLocation[];
   createdAt: string;
   updatedAt: string;
+  shareCode?: string;   // 클라우드 공유 코드 (예: "BOHOL26")
+  cloudEnabled?: boolean;
 }
