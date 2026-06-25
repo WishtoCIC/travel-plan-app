@@ -17,8 +17,8 @@ export function Layout() {
         <Outlet />
       </main>
 
-      {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 max-w-lg mx-auto safe-bottom">
+      {/* Bottom Navigation — z-40 so modals (z-50) render above it */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40 max-w-lg mx-auto safe-bottom">
         <div className="flex items-stretch h-16">
           {navItems.map(({ to, label, icon: Icon, end }) => (
             <NavLink

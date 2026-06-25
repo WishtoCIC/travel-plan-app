@@ -29,6 +29,10 @@
   .pb-safe {
     padding-bottom: calc(4rem + env(safe-area-inset-bottom, 0px));
   }
+  /* Bottom sheet modal — extra padding for iPhone home indicator */
+  .pb-sheet {
+    padding-bottom: calc(2rem + env(safe-area-inset-bottom, 0px));
+  }
   .touch-action-none {
     touch-action: none;
   }

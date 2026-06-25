@@ -301,7 +301,7 @@ function ExpenseModal({ onSave, onClose }: { onSave: (e: Omit<Expense, 'id'>) =>
   const set = (k: string, v: unknown) => setForm((f) => ({ ...f, [k]: v }));
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-end">
-      <div className="bg-white w-full rounded-t-3xl p-5 pb-8 space-y-3 max-h-[90vh] overflow-y-auto">
+      <div className="bg-white w-full rounded-t-3xl p-5 pb-sheet space-y-3 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between"><h2 className="text-base font-bold">지출 추가</h2><button onClick={onClose}><X size={20} className="text-gray-400" /></button></div>
         <Field label="내용"><input className={inputCls} value={form.description} onChange={(e) => set('description', e.target.value)} placeholder="항공권, 숙소 등" autoFocus /></Field>
         <div className="grid grid-cols-2 gap-3">
@@ -335,7 +335,7 @@ function BookingModal({ onSave, onClose }: { onSave: (b: Omit<BookingLink, 'id'>
   const TYPES = [['flight','✈️ 항공'],['hotel','🏨 숙소'],['ferry','⛴️ 페리'],['tour','🎯 투어'],['other','📌 기타']] as const;
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-end">
-      <div className="bg-white w-full rounded-t-3xl p-5 pb-8 space-y-3 max-h-[90vh] overflow-y-auto">
+      <div className="bg-white w-full rounded-t-3xl p-5 pb-sheet space-y-3 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between"><h2 className="text-base font-bold">예약 추가</h2><button onClick={onClose}><X size={20} className="text-gray-400" /></button></div>
         <Field label="예약명"><input className={inputCls} value={form.label} onChange={(e) => set('label', e.target.value)} placeholder="OceanJet 페리 예약" autoFocus /></Field>
         <Field label="종류">

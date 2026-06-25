@@ -194,7 +194,7 @@ function ItemModal({ dayId, item, onSave, onClose }: {
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-end">
-      <div className="bg-white w-full rounded-t-3xl p-5 pb-8 space-y-4 max-h-[85vh] overflow-y-auto">
+      <div className="bg-white w-full rounded-t-3xl p-5 pb-sheet space-y-4 max-h-[85vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-1">
           <h2 className="text-base font-bold text-gray-900">일정 {isNew ? '추가' : '수정'}</h2>
           <button onClick={onClose} className="p-2 text-gray-400 rounded-full"><X size={20} /></button>
