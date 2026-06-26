@@ -1,11 +1,13 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Calendar, DollarSign, CheckSquare, Plane, ChevronRight, ExternalLink, Settings } from 'lucide-react';
+import { Plus, Calendar, DollarSign, CheckSquare, Plane, ChevronRight, ExternalLink, Settings, RefreshCw } from 'lucide-react';
 import { useTravelStore } from '../store/travelStore';
 import { formatKRW, getDaysBetween, formatDate } from '../utils/helpers';
 
 export function Dashboard() {
-  const { trips, activeTrip, setActiveTrip, addTrip } = useTravelStore();
+  const { trips, activeTrip, setActiveTrip, addTrip, joinByCode, syncStatus } = useTravelStore();
   const navigate = useNavigate();
+  const [refreshing, setRefreshing] = useState(false);
   const trip = trips.find((t) => t.id === activeTrip) ?? trips[0];
 
   const today = new Date();
@@ -16,6 +18,13 @@ export function Dashboard() {
   const checkedCount = trip?.checklist.filter((c) => c.done).length ?? 0;
   const totalChecklist = trip?.checklist.length ?? 0;
   const pendingBookings = trip?.bookings.filter((b) => b.status === 'pending') ?? [];
+
+  async function handleRefresh() {
+    if (!trip?.shareCode || refreshing) return;
+    setRefreshing(true);
+    await joinByCode(trip.shareCode);
+    setRefreshing(false);
+  }
 
   function handleNewTrip() {
     const id = addTrip({
@@ -44,6 +53,15 @@ export function Dashboard() {
           <p className="text-xs text-gray-400 mt-0.5">내 여행 계획</p>
         </div>
         <div className="flex gap-2">
+          {trip?.cloudEnabled && (
+            <button
+              onClick={handleRefresh}
+              className="w-9 h-9 bg-gray-100 rounded-full flex items-center justify-center text-gray-500"
+              title="최신 데이터 가져오기"
+            >
+              <RefreshCw size={17} className={refreshing || syncStatus === 'syncing' ? 'animate-spin text-blue-500' : ''} />
+            </button>
+          )}
           <button
             onClick={handleNewTrip}
             className="w-9 h-9 bg-blue-600 rounded-full flex items-center justify-center text-white shadow-sm"
