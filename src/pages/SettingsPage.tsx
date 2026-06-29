@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Save, Download, Upload, Trash2, ChevronRight, Info, Cloud, CloudOff, Link } from 'lucide-react';
+import { Save, Download, Upload, Trash2, ChevronRight, Info, Cloud, CloudOff, Link, RotateCcw } from 'lucide-react';
 import { useTravelStore } from '../store/travelStore';
 import { exportTripAsFile, importTripFromFile, shareText } from '../utils/share';
 import { isSupabaseReady } from '../lib/supabase';
@@ -8,7 +8,7 @@ import type { Currency } from '../types/travel';
 const CURRENCIES: Currency[] = ['KRW', 'PHP', 'USD', 'JPY', 'THB', 'VND'];
 
 export function SettingsPage() {
-  const { trips, activeTrip, updateTrip, deleteTrip, setActiveTrip, addTrip, enableCloudSync, joinByCode, syncStatus } = useTravelStore();
+  const { trips, activeTrip, updateTrip, deleteTrip, setActiveTrip, addTrip, enableCloudSync, joinByCode, syncStatus, restoreFromSample } = useTravelStore();
   const trip = trips.find((t) => t.id === activeTrip) ?? trips[0];
   const [saved, setSaved] = useState(false);
   const [shareMsg, setShareMsg] = useState('');
@@ -32,6 +32,19 @@ export function SettingsPage() {
 
   function save() {
     if (!trip) return;
+
+    let updatedItinerary = trip.itinerary;
+    if (form.startDate && trip.startDate && form.startDate !== trip.startDate) {
+      const oldStart = new Date(trip.startDate);
+      const newStart = new Date(form.startDate);
+      const diffDays = Math.round((newStart.getTime() - oldStart.getTime()) / 86400000);
+      updatedItinerary = trip.itinerary.map((day) => {
+        const d = new Date(day.date);
+        d.setDate(d.getDate() + diffDays);
+        return { ...day, date: d.toISOString().split('T')[0] };
+      });
+    }
+
     updateTrip(trip.id, {
       title: form.title,
       destination: form.destination,
@@ -42,6 +55,7 @@ export function SettingsPage() {
       budget: form.budget ? Number(form.budget) : undefined,
       travelers: form.travelers.split(',').map((s) => s.trim()).filter(Boolean),
       coverEmoji: form.coverEmoji,
+      itinerary: updatedItinerary,
     });
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
@@ -277,11 +291,23 @@ export function SettingsPage() {
         </button>
 
         {/* Danger zone */}
-        {trip && (
-          <div className="bg-white rounded-2xl border border-red-100 overflow-hidden">
-            <div className="px-4 py-3 border-b border-red-50">
-              <p className="text-xs font-semibold text-red-400">위험 구역</p>
-            </div>
+        <div className="bg-white rounded-2xl border border-red-100 overflow-hidden">
+          <div className="px-4 py-3 border-b border-red-50">
+            <p className="text-xs font-semibold text-red-400">위험 구역</p>
+          </div>
+          <button
+            onClick={async () => {
+              if (confirm('일정·비용·체크리스트·예약 데이터를 원본 보홀·세부 샘플로 복원하시겠어요?\n\n현재 데이터는 사라집니다.')) {
+                await restoreFromSample(trip?.id);
+                alert('✅ 원본 샘플 데이터로 복원됐어요!');
+              }
+            }}
+            className="w-full flex items-center gap-3 px-4 py-3.5 text-orange-500 text-sm border-b border-red-50"
+          >
+            <RotateCcw size={16} />
+            원본 샘플 데이터로 복원
+          </button>
+          {trip && (
             <button
               onClick={() => {
                 if (confirm(`"${trip.title}" 여행을 삭제하시겠어요? 모든 데이터가 사라집니다.`)) {
@@ -293,8 +319,8 @@ export function SettingsPage() {
               <Trash2 size={16} />
               이 여행 삭제
             </button>
-          </div>
-        )}
+          )}
+        </div>
 
         <p className="text-center text-xs text-gray-400 pb-2">
           TravelPlan · 데이터는 이 기기에만 저장됩니다

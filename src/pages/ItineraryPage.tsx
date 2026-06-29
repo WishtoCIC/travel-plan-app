@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Edit2, Trash2, ExternalLink, Clock, MapPin, ChevronDown, ChevronUp, X } from 'lucide-react';
+import { Plus, Edit2, Trash2, ExternalLink, Clock, MapPin, ChevronDown, ChevronUp, X, Sun } from 'lucide-react';
 import { useTravelStore } from '../store/travelStore';
 import { formatDate, generateId } from '../utils/helpers';
 import type { DayItinerary, ItineraryItem } from '../types/travel';
@@ -54,12 +54,18 @@ export function ItineraryPage() {
   }
 
   function addDay() {
-    const lastDate = trip.itinerary.at(-1)?.date ?? trip.startDate;
-    const next = new Date(lastDate);
-    next.setDate(next.getDate() + 1);
+    const lastDate = trip.itinerary.at(-1)?.date;
+    const next = new Date(lastDate ?? trip.startDate);
+    if (lastDate) next.setDate(next.getDate() + 1);
     const newDay: DayItinerary = { id: generateId(), date: next.toISOString().split('T')[0], region: '', items: [] };
     updateTrip(trip.id, { itinerary: [...trip.itinerary, newDay] });
     setOpenDays((prev) => new Set([...prev, newDay.id]));
+  }
+
+  function deleteDay(dayId: string) {
+    updateTrip(trip.id, {
+      itinerary: trip.itinerary.filter((d) => d.id !== dayId),
+    });
   }
 
   function cycleStatus(dayId: string, item: ItineraryItem) {
@@ -93,26 +99,34 @@ export function ItineraryPage() {
           return (
             <div key={day.id} className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
               {/* Day header */}
-              <button
-                onClick={() => toggleDay(day.id)}
-                className="w-full flex items-center gap-3 px-4 py-3.5 text-left"
-              >
-                <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 shadow-sm">
-                  {idx + 1}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-sm font-semibold text-gray-900">{formatDate(day.date)}</span>
-                    {day.region && (
-                      <span className="text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full font-medium">{day.region}</span>
-                    )}
+              <div className="flex items-center">
+                <button
+                  onClick={() => toggleDay(day.id)}
+                  className="flex-1 flex items-center gap-3 px-4 py-3.5 text-left min-w-0"
+                >
+                  <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 shadow-sm">
+                    {idx + 1}
                   </div>
-                  <p className="text-xs text-gray-400 mt-0.5">
-                    {day.items.length}개 일정 {bookedCount > 0 && `· 예약완료 ${bookedCount}개`}
-                  </p>
-                </div>
-                {isOpen ? <ChevronUp size={18} className="text-gray-300 flex-shrink-0" /> : <ChevronDown size={18} className="text-gray-300 flex-shrink-0" />}
-              </button>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm font-semibold text-gray-900">{formatDate(day.date)}</span>
+                      {day.region && (
+                        <span className="text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full font-medium">{day.region}</span>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      {day.items.length}개 일정 {bookedCount > 0 && `· 예약완료 ${bookedCount}개`}
+                    </p>
+                  </div>
+                  {isOpen ? <ChevronUp size={18} className="text-gray-300 flex-shrink-0" /> : <ChevronDown size={18} className="text-gray-300 flex-shrink-0" />}
+                </button>
+                <button
+                  onClick={() => deleteDay(day.id)}
+                  className="p-3 mr-2 text-gray-300 hover:text-red-500 active:bg-red-50 rounded-xl flex-shrink-0"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
 
               {/* Items */}
               {isOpen && (
@@ -128,7 +142,9 @@ export function ItineraryPage() {
                       <div className="flex-1 min-w-0">
                         {item.time && (
                           <div className="flex items-center gap-1 text-xs text-gray-400 mb-0.5">
-                            <Clock size={11} />{item.time}
+                            {item.time === '종일'
+                              ? <><Sun size={11} />종일</>
+                              : <><Clock size={11} />{item.time}</>}
                           </div>
                         )}
                         <p className="text-sm text-gray-800 font-medium">{item.activity}</p>
@@ -189,8 +205,33 @@ function ItemModal({ dayId, item, onSave, onClose }: {
   onClose: () => void;
 }) {
   const [form, setForm] = useState<ItineraryItem>({ ...item });
+  const [isAllDay, setIsAllDay] = useState(item.time === '종일');
+  const [hour, setHour] = useState(() => {
+    if (!item.time || item.time === '종일') return '';
+    return item.time.split(':')[0] ?? '';
+  });
+  const [minute, setMinute] = useState(() => {
+    if (!item.time || item.time === '종일') return '00';
+    return item.time.split(':')[1] ?? '00';
+  });
   const set = (k: keyof ItineraryItem, v: string) => setForm((f) => ({ ...f, [k]: v }));
   const isNew = !item.activity;
+
+  function toggleAllDay() {
+    const next = !isAllDay;
+    setIsAllDay(next);
+    set('time', next ? '종일' : hour ? `${hour}:${minute}` : '');
+  }
+
+  function handleHourChange(h: string) {
+    setHour(h);
+    set('time', h ? `${h}:${minute}` : '');
+  }
+
+  function handleMinuteChange(m: string) {
+    setMinute(m);
+    if (hour) set('time', `${hour}:${m}`);
+  }
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-end">
@@ -202,18 +243,49 @@ function ItemModal({ dayId, item, onSave, onClose }: {
         <Field label="활동 *">
           <input className={inputCls} value={form.activity} onChange={(e) => set('activity', e.target.value)} placeholder="예: 초콜릿힐 투어" autoFocus />
         </Field>
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="시간">
-            <input className={inputCls} type="time" value={form.time ?? ''} onChange={(e) => set('time', e.target.value)} />
-          </Field>
-          <Field label="상태">
-            <select className={inputCls} value={form.status} onChange={(e) => set('status', e.target.value as ItineraryItem['status'])}>
-              <option value="planned">계획</option>
-              <option value="booked">예약완료</option>
-              <option value="done">완료</option>
-            </select>
-          </Field>
-        </div>
+        <Field label="시간">
+          <div className="flex gap-2 items-center">
+            <button
+              type="button"
+              onClick={toggleAllDay}
+              className={`flex items-center gap-1 px-3 py-2.5 rounded-xl text-sm font-medium border flex-shrink-0 transition-colors ${
+                isAllDay ? 'bg-blue-600 text-white border-blue-600' : 'bg-gray-50 text-gray-500 border-gray-200'
+              }`}
+            >
+              <Sun size={14} /> 종일
+            </button>
+            {!isAllDay && (
+              <>
+                <select
+                  className={inputCls}
+                  value={hour}
+                  onChange={(e) => handleHourChange(e.target.value)}
+                >
+                  <option value="">시</option>
+                  {Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0')).map((h) => (
+                    <option key={h} value={h}>{h}시</option>
+                  ))}
+                </select>
+                <select
+                  className={inputCls}
+                  value={minute}
+                  onChange={(e) => handleMinuteChange(e.target.value)}
+                  disabled={!hour}
+                >
+                  <option value="00">00분</option>
+                  <option value="30">30분</option>
+                </select>
+              </>
+            )}
+          </div>
+        </Field>
+        <Field label="상태">
+          <select className={inputCls} value={form.status} onChange={(e) => set('status', e.target.value as ItineraryItem['status'])}>
+            <option value="planned">계획</option>
+            <option value="booked">예약완료</option>
+            <option value="done">완료</option>
+          </select>
+        </Field>
         <Field label="장소">
           <input className={inputCls} value={form.location ?? ''} onChange={(e) => set('location', e.target.value)} placeholder="장소명" />
         </Field>

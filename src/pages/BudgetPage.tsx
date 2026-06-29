@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Trash2, ExternalLink, X, ArrowLeftRight } from 'lucide-react';
+import { Plus, Trash2, ExternalLink, X, ArrowLeftRight, Edit2, ArrowRight } from 'lucide-react';
 import { useTravelStore } from '../store/travelStore';
 import { formatKRW, formatCurrency, generateId, CATEGORY_LABELS, CURRENCY_SYMBOLS } from '../utils/helpers';
 import type { Expense, BookingLink, Currency } from '../types/travel';
@@ -20,13 +20,22 @@ const CAT_COLOR: Record<string, string> = {
   other: 'bg-gray-100 text-gray-600',
 };
 
-type Tab = 'expenses' | 'bookings' | 'currency';
+const PAYER_OPTIONS = ['곰이', '옹이', '생활비', '기타'] as const;
+
+const PAYER_COLOR: Record<string, string> = {
+  곰이:   'bg-blue-100 text-blue-700',
+  옹이:   'bg-rose-100 text-rose-700',
+  생활비: 'bg-emerald-100 text-emerald-700',
+  기타:   'bg-gray-100 text-gray-500',
+};
+
+type Tab = 'expenses' | 'bookings' | 'currency' | 'settlement';
 
 export function BudgetPage() {
   const { trips, activeTrip, updateTrip, exchangeRates, setExchangeRate, convertAmount } = useTravelStore();
   const trip = trips.find((t) => t.id === activeTrip) ?? trips[0];
   const [tab, setTab] = useState<Tab>('expenses');
-  const [showExpenseForm, setShowExpenseForm] = useState(false);
+  const [expenseModal, setExpenseModal] = useState<{ open: boolean; expense?: Expense }>({ open: false });
   const [showBookingForm, setShowBookingForm] = useState(false);
   const [fromCur, setFromCur] = useState<Currency>('KRW');
   const [toCur, setToCur] = useState<Currency>('PHP');
@@ -39,15 +48,34 @@ export function BudgetPage() {
     </div>
   );
 
-  const totalKRW = trip.expenses.reduce((s, e) => s + convertAmount(e.amount, e.currency, 'KRW'), 0);
+  const toKRW = (e: Expense) => convertAmount(e.amount, e.currency, 'KRW');
+  const totalKRW = trip.expenses.reduce((s, e) => s + toKRW(e), 0);
   const budgetPct = trip.budget ? Math.min((totalKRW / trip.budget) * 100, 100) : 0;
   const byCategory = CATEGORIES.map((cat) => ({
     cat,
-    total: trip.expenses.filter((e) => e.category === cat).reduce((s, e) => s + convertAmount(e.amount, e.currency, 'KRW'), 0),
+    total: trip.expenses.filter((e) => e.category === cat).reduce((s, e) => s + toKRW(e), 0),
   })).filter((x) => x.total > 0);
 
-  function addExpense(e: Omit<Expense, 'id'>) {
-    updateTrip(trip.id, { expenses: [...trip.expenses, { ...e, id: generateId() }] });
+  // 지출처별 합계
+  const byPayer = PAYER_OPTIONS.map((p) => ({
+    payer: p,
+    total: trip.expenses.filter((e) => (e.paidBy ?? '기타') === p).reduce((s, e) => s + toKRW(e), 0),
+  }));
+  const gomiTotal = byPayer.find((p) => p.payer === '곰이')?.total ?? 0;
+  const ongiTotal = byPayer.find((p) => p.payer === '옹이')?.total ?? 0;
+  const sharedTotal = (byPayer.find((p) => p.payer === '생활비')?.total ?? 0) + (byPayer.find((p) => p.payer === '기타')?.total ?? 0);
+  const gomiResponsible = gomiTotal + sharedTotal / 2;
+  const ongiResponsible = ongiTotal + sharedTotal / 2;
+  const transferAmount = Math.abs(gomiResponsible - ongiResponsible);
+  const transferFrom = gomiResponsible > ongiResponsible ? '옹이' : '곰이';
+  const transferTo   = gomiResponsible > ongiResponsible ? '곰이' : '옹이';
+
+  function saveExpense(e: Omit<Expense, 'id'>, id?: string) {
+    if (id) {
+      updateTrip(trip.id, { expenses: trip.expenses.map((ex) => ex.id === id ? { ...ex, ...e } : ex) });
+    } else {
+      updateTrip(trip.id, { expenses: [...trip.expenses, { ...e, id: generateId() }] });
+    }
   }
   function deleteExpense(id: string) {
     updateTrip(trip.id, { expenses: trip.expenses.filter((e) => e.id !== id) });
@@ -65,6 +93,13 @@ export function BudgetPage() {
   }
 
   const converted = convertInput ? convertAmount(parseFloat(convertInput) || 0, fromCur, toCur) : null;
+
+  const TABS: { key: Tab; label: string }[] = [
+    { key: 'expenses', label: '지출' },
+    { key: 'bookings', label: '예약' },
+    { key: 'currency', label: '환율' },
+    { key: 'settlement', label: '정산' },
+  ];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -105,11 +140,11 @@ export function BudgetPage() {
 
       {/* Tab */}
       <div className="px-4 mb-3">
-        <div className="flex bg-gray-100 p-1 rounded-2xl">
-          {(['expenses', 'bookings', 'currency'] as Tab[]).map((t) => (
-            <button key={t} onClick={() => setTab(t)}
-              className={`flex-1 py-2 rounded-xl text-xs font-semibold transition-all ${tab === t ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400'}`}>
-              {t === 'expenses' ? '지출' : t === 'bookings' ? '예약' : '환율'}
+        <div className="flex bg-gray-100 p-1 rounded-2xl gap-0.5">
+          {TABS.map(({ key, label }) => (
+            <button key={key} onClick={() => setTab(key)}
+              className={`flex-1 py-2 rounded-xl text-xs font-semibold transition-all ${tab === key ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400'}`}>
+              {label}
             </button>
           ))}
         </div>
@@ -135,18 +170,32 @@ export function BudgetPage() {
                 <div key={e.id} className="bg-white rounded-2xl border border-gray-100 px-4 py-3 flex items-center gap-3">
                   <span className="text-xl flex-shrink-0">{CAT_EMOJI[e.category]}</span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-800 truncate">{e.description}</p>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <p className="text-sm font-medium text-gray-800 truncate">{e.description}</p>
+                      {e.paidBy && (
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0 ${PAYER_COLOR[e.paidBy] ?? 'bg-gray-100 text-gray-500'}`}>
+                          {e.paidBy}
+                        </span>
+                      )}
+                    </div>
                     {e.notes && <p className="text-xs text-gray-400">{e.notes}</p>}
                   </div>
                   <div className="text-right flex-shrink-0">
                     <p className="text-sm font-bold text-gray-900">{formatCurrency(e.amount, e.currency)}</p>
                     {e.currency !== 'KRW' && (
-                      <p className="text-xs text-gray-400">≈{formatKRW(convertAmount(e.amount, e.currency, 'KRW'))}</p>
+                      <p className="text-xs text-gray-400">≈{formatKRW(toKRW(e))}</p>
                     )}
                   </div>
-                  <button onClick={() => deleteExpense(e.id)} className="p-2 text-gray-300 active:text-red-400 flex-shrink-0">
-                    <Trash2 size={15} />
-                  </button>
+                  <div className="flex flex-col gap-0.5 flex-shrink-0">
+                    <button onClick={() => setExpenseModal({ open: true, expense: e })}
+                      className="p-1.5 text-gray-300 active:text-blue-400">
+                      <Edit2 size={14} />
+                    </button>
+                    <button onClick={() => deleteExpense(e.id)}
+                      className="p-1.5 text-gray-300 active:text-red-400">
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
                 </div>
               ))}
               {trip.expenses.length === 0 && (
@@ -154,7 +203,7 @@ export function BudgetPage() {
               )}
             </div>
             <button
-              onClick={() => setShowExpenseForm(true)}
+              onClick={() => setExpenseModal({ open: true })}
               className="w-full flex items-center justify-center gap-2 py-3.5 bg-blue-600 text-white rounded-2xl font-semibold text-sm"
             >
               <Plus size={18} /> 지출 추가
@@ -216,7 +265,6 @@ export function BudgetPage() {
         {/* CURRENCY */}
         {tab === 'currency' && (
           <div className="space-y-4">
-            {/* Converter */}
             <div className="bg-white rounded-2xl border border-gray-100 p-4">
               <h3 className="text-sm font-semibold text-gray-700 mb-3">환율 계산기</h3>
               <input
@@ -251,8 +299,6 @@ export function BudgetPage() {
                 </div>
               )}
             </div>
-
-            {/* Rate settings */}
             <div className="bg-white rounded-2xl border border-gray-100 p-4">
               <h3 className="text-sm font-semibold text-gray-700 mb-3">환율 직접 설정</h3>
               <div className="space-y-3">
@@ -264,9 +310,96 @@ export function BudgetPage() {
             </div>
           </div>
         )}
+
+        {/* SETTLEMENT 정산 */}
+        {tab === 'settlement' && (
+          <div className="space-y-4">
+            {/* 지출처별 현황 */}
+            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+              <div className="px-4 py-3 border-b border-gray-50">
+                <p className="text-xs font-semibold text-gray-500">지출처별 현황</p>
+              </div>
+              <div className="divide-y divide-gray-50">
+                {byPayer.map(({ payer, total }) => (
+                  <div key={payer} className="flex items-center justify-between px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${PAYER_COLOR[payer]}`}>{payer}</span>
+                      {(payer === '생활비' || payer === '기타') && (
+                        <span className="text-[10px] text-gray-400">공동 ÷ 2</span>
+                      )}
+                    </div>
+                    <span className="text-sm font-bold text-gray-900">{formatKRW(total)}</span>
+                  </div>
+                ))}
+                <div className="flex items-center justify-between px-4 py-3 bg-gray-50">
+                  <span className="text-xs font-semibold text-gray-600">공동 합계 (생활비+기타)</span>
+                  <span className="text-sm font-bold text-gray-700">{formatKRW(sharedTotal)}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* 최종 부담 */}
+            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+              <div className="px-4 py-3 border-b border-gray-50">
+                <p className="text-xs font-semibold text-gray-500">최종 부담액 (개인 + 공동÷2)</p>
+              </div>
+              <div className="p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">곰이</span>
+                    <span className="text-xs text-gray-400">{formatKRW(gomiTotal)} + {formatKRW(sharedTotal / 2)}</span>
+                  </div>
+                  <span className="text-base font-black text-gray-900">{formatKRW(gomiResponsible)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700">옹이</span>
+                    <span className="text-xs text-gray-400">{formatKRW(ongiTotal)} + {formatKRW(sharedTotal / 2)}</span>
+                  </div>
+                  <span className="text-base font-black text-gray-900">{formatKRW(ongiResponsible)}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* 이체 정산 */}
+            <div className={`rounded-2xl p-5 ${transferAmount > 0 ? 'bg-gradient-to-br from-blue-600 to-indigo-500' : 'bg-gray-100'}`}>
+              {transferAmount > 0 ? (
+                <>
+                  <p className="text-blue-100 text-xs mb-3">정산 이체</p>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-center">
+                      <p className="text-white/70 text-xs mb-1">이체자</p>
+                      <p className="text-white text-lg font-black">{transferFrom}</p>
+                    </div>
+                    <div className="flex-1 flex flex-col items-center gap-1">
+                      <p className="text-white text-xl font-black">{formatKRW(transferAmount)}</p>
+                      <ArrowRight size={20} className="text-blue-200" />
+                    </div>
+                    <div className="text-center">
+                      <p className="text-white/70 text-xs mb-1">수취자</p>
+                      <p className="text-white text-lg font-black">{transferTo}</p>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <p className="text-center text-gray-500 text-sm font-medium py-2">지출 내역을 추가하면 정산 금액이 계산됩니다</p>
+              )}
+            </div>
+
+            <p className="text-xs text-gray-400 text-center px-4">
+              생활비·기타는 공동 지출로 반반 부담 계산됩니다
+            </p>
+          </div>
+        )}
       </div>
 
-      {showExpenseForm && <ExpenseModal onSave={(e) => { addExpense(e); setShowExpenseForm(false); }} onClose={() => setShowExpenseForm(false)} />}
+      {expenseModal.open && (
+        <ExpenseModal
+          existing={expenseModal.expense}
+          onSave={(e, id) => { saveExpense(e, id); setExpenseModal({ open: false }); }}
+          onClose={() => setExpenseModal({ open: false })}
+        />
+      )}
       {showBookingForm && <BookingModal onSave={(b) => { addBooking(b); setShowBookingForm(false); }} onClose={() => setShowBookingForm(false)} />}
     </div>
   );
@@ -296,33 +429,79 @@ function RateRow({ rate, onChange }: { rate: { from: string; to: string; rate: n
   );
 }
 
-function ExpenseModal({ onSave, onClose }: { onSave: (e: Omit<Expense, 'id'>) => void; onClose: () => void }) {
-  const [form, setForm] = useState<Omit<Expense, 'id'>>({ date: new Date().toISOString().split('T')[0], category: 'other', description: '', amount: 0, currency: 'KRW' });
+function ExpenseModal({ existing, onSave, onClose }: {
+  existing?: Expense;
+  onSave: (e: Omit<Expense, 'id'>, id?: string) => void;
+  onClose: () => void;
+}) {
+  const [form, setForm] = useState<Omit<Expense, 'id'>>(
+    existing
+      ? { date: existing.date, category: existing.category, description: existing.description, amount: existing.amount, currency: existing.currency, paidBy: existing.paidBy ?? '곰이', notes: existing.notes }
+      : { date: new Date().toISOString().split('T')[0], category: 'other', description: '', amount: 0, currency: 'KRW', paidBy: '곰이' }
+  );
   const set = (k: string, v: unknown) => setForm((f) => ({ ...f, [k]: v }));
+  const isEdit = !!existing;
+
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-end">
-      <div className="bg-white w-full rounded-t-3xl p-5 pb-sheet space-y-3 max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between"><h2 className="text-base font-bold">지출 추가</h2><button onClick={onClose}><X size={20} className="text-gray-400" /></button></div>
-        <Field label="내용"><input className={inputCls} value={form.description} onChange={(e) => set('description', e.target.value)} placeholder="항공권, 숙소 등" autoFocus /></Field>
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="금액"><input type="number" inputMode="decimal" className={inputCls} value={form.amount || ''} onChange={(e) => set('amount', parseFloat(e.target.value) || 0)} /></Field>
-          <Field label="통화"><select className={inputCls} value={form.currency} onChange={(e) => set('currency', e.target.value)}>{CURRENCIES.map((c) => <option key={c}>{c}</option>)}</select></Field>
+      <div className="bg-white w-full rounded-t-3xl p-5 pb-sheet space-y-3 max-h-[92vh] overflow-y-auto">
+        <div className="flex items-center justify-between">
+          <h2 className="text-base font-bold">{isEdit ? '지출 수정' : '지출 추가'}</h2>
+          <button onClick={onClose}><X size={20} className="text-gray-400" /></button>
         </div>
+
+        <Field label="내용">
+          <input className={inputCls} value={form.description} onChange={(e) => set('description', e.target.value)} placeholder="항공권, 숙소 등" autoFocus />
+        </Field>
+
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="금액">
+            <input type="number" inputMode="decimal" className={inputCls} value={form.amount || ''} onChange={(e) => set('amount', parseFloat(e.target.value) || 0)} />
+          </Field>
+          <Field label="통화">
+            <select className={inputCls} value={form.currency} onChange={(e) => set('currency', e.target.value)}>
+              {CURRENCIES.map((c) => <option key={c}>{c}</option>)}
+            </select>
+          </Field>
+        </div>
+
+        <Field label="지출처">
+          <div className="flex gap-2">
+            {PAYER_OPTIONS.map((p) => (
+              <button key={p} onClick={() => set('paidBy', p)}
+                className={`flex-1 py-2.5 rounded-xl text-sm font-semibold border transition-colors ${form.paidBy === p ? `border-transparent ${PAYER_COLOR[p]}` : 'bg-gray-50 text-gray-500 border-gray-200'}`}>
+                {p}
+              </button>
+            ))}
+          </div>
+        </Field>
+
         <Field label="카테고리">
           <div className="grid grid-cols-4 gap-1.5">
             {CATEGORIES.map((c) => (
               <button key={c} onClick={() => set('category', c)}
                 className={`py-2 rounded-xl text-xs font-medium border transition-colors ${form.category === c ? 'bg-blue-600 text-white border-blue-600' : 'bg-gray-50 text-gray-600 border-gray-200'}`}>
-                {CAT_EMOJI[c]}<br/>{CATEGORY_LABELS[c]}
+                {CAT_EMOJI[c]}<br />{CATEGORY_LABELS[c]}
               </button>
             ))}
           </div>
         </Field>
-        <Field label="날짜"><input type="date" className={inputCls} value={form.date} onChange={(e) => set('date', e.target.value)} /></Field>
-        <Field label="메모"><input className={inputCls} value={form.notes ?? ''} onChange={(e) => set('notes', e.target.value)} /></Field>
+
+        <Field label="날짜">
+          <input type="date" className={inputCls} value={form.date} onChange={(e) => set('date', e.target.value)} />
+        </Field>
+        <Field label="메모">
+          <input className={inputCls} value={form.notes ?? ''} onChange={(e) => set('notes', e.target.value)} />
+        </Field>
+
         <div className="flex gap-2 pt-1">
           <button onClick={onClose} className="flex-1 py-3 rounded-2xl border border-gray-200 text-sm text-gray-600">취소</button>
-          <button onClick={() => { if (form.description && form.amount) onSave(form); }} className="flex-1 py-3 rounded-2xl bg-blue-600 text-white text-sm font-semibold">저장</button>
+          <button
+            onClick={() => { if (form.description && form.amount) onSave(form, existing?.id); }}
+            className="flex-1 py-3 rounded-2xl bg-blue-600 text-white text-sm font-semibold"
+          >
+            {isEdit ? '수정 완료' : '저장'}
+          </button>
         </div>
       </div>
     </div>
@@ -332,7 +511,7 @@ function ExpenseModal({ onSave, onClose }: { onSave: (e: Omit<Expense, 'id'>) =>
 function BookingModal({ onSave, onClose }: { onSave: (b: Omit<BookingLink, 'id'>) => void; onClose: () => void }) {
   const [form, setForm] = useState<Omit<BookingLink, 'id'>>({ label: '', url: '', type: 'other', status: 'pending', currency: 'KRW' });
   const set = (k: string, v: unknown) => setForm((f) => ({ ...f, [k]: v }));
-  const TYPES = [['flight','✈️ 항공'],['hotel','🏨 숙소'],['ferry','⛴️ 페리'],['tour','🎯 투어'],['other','📌 기타']] as const;
+  const TYPES = [['flight', '✈️ 항공'], ['hotel', '🏨 숙소'], ['ferry', '⛴️ 페리'], ['tour', '🎯 투어'], ['other', '📌 기타']] as const;
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-end">
       <div className="bg-white w-full rounded-t-3xl p-5 pb-sheet space-y-3 max-h-[90vh] overflow-y-auto">

@@ -16,6 +16,9 @@ interface TravelStore {
   deleteTrip: (id: string) => void;
   setActiveTrip: (id: string | null) => void;
   getTrip: (id: string) => Trip | undefined;
+  /** 현재 여행의 일정·비용·체크리스트·예약 데이터를 원본 샘플로 복원.
+   *  tripId가 없으면 샘플 여행을 새로 추가. */
+  restoreFromSample: (tripId?: string) => Promise<void>;
 
   /** 클라우드 동기화 활성화: 공유 코드 생성 후 Supabase에 업로드 */
   enableCloudSync: (tripId: string) => Promise<string | null>;
@@ -130,6 +133,38 @@ export const useTravelStore = create<TravelStore>()(
         } catch {
           set({ syncStatus: 'error' });
           return 'not_found';
+        }
+      },
+
+      restoreFromSample: async (tripId) => {
+        if (tripId) {
+          set((s) => ({
+            trips: s.trips.map((t) =>
+              t.id === tripId
+                ? {
+                    ...t,
+                    itinerary: sampleTrip.itinerary,
+                    expenses: sampleTrip.expenses,
+                    checklist: sampleTrip.checklist,
+                    bookings: sampleTrip.bookings,
+                    locations: sampleTrip.locations,
+                    updatedAt: new Date().toISOString(),
+                  }
+                : t
+            ),
+          }));
+          const trip = get().trips.find((t) => t.id === tripId);
+          if (trip?.cloudEnabled && trip?.shareCode) {
+            await get().syncToCloud(tripId);
+          }
+        } else {
+          // 여행 자체가 없으면 샘플 여행을 새로 추가
+          const now = new Date().toISOString();
+          const restored: Trip = { ...sampleTrip, createdAt: now, updatedAt: now };
+          set((s) => ({
+            trips: [...s.trips.filter((t) => t.id !== sampleTrip.id), restored],
+            activeTrip: restored.id,
+          }));
         }
       },
 
