@@ -102,35 +102,35 @@ export function BudgetPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="app-screen">
       {/* Header */}
-      <div className="bg-white px-4 pt-12 pb-4 border-b border-gray-100">
-        <h1 className="text-xl font-bold text-gray-900">예산 관리</h1>
-        <p className="text-xs text-gray-400">{trip.title}</p>
+      <div className="app-header">
+        <h1 className="app-header-title">예산 관리</h1>
+        <p className="app-header-subtitle">{trip.title}</p>
       </div>
 
       {/* Budget summary card */}
-      <div className="px-4 pt-4">
-        <div className="bg-gradient-to-br from-emerald-500 to-teal-400 rounded-2xl p-4 text-white shadow-lg mb-4">
+      <div className="px-5 pt-4">
+        <div className="mb-4 rounded-xl border border-emerald-100 bg-white p-4 shadow-sm shadow-slate-200/70">
           <div className="flex justify-between items-start mb-3">
             <div>
-              <p className="text-emerald-100 text-xs">총 지출</p>
-              <p className="text-2xl font-black mt-0.5">{formatKRW(totalKRW)}</p>
+              <p className="section-label">총 지출</p>
+              <p className="mt-1 text-3xl font-black tracking-normal text-slate-950">{formatKRW(totalKRW)}</p>
             </div>
             {trip.budget && (
               <div className="text-right">
-                <p className="text-emerald-100 text-xs">예산</p>
-                <p className="text-base font-bold mt-0.5">{formatKRW(trip.budget)}</p>
+                <p className="section-label">예산</p>
+                <p className="mt-1 text-base font-black text-emerald-700">{formatKRW(trip.budget)}</p>
               </div>
             )}
           </div>
           {trip.budget && (
             <>
-              <div className="h-2 bg-white/30 rounded-full overflow-hidden">
-                <div className={`h-full rounded-full transition-all ${budgetPct >= 90 ? 'bg-red-300' : 'bg-white'}`}
+              <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+                <div className={`h-full rounded-full transition-all ${budgetPct >= 90 ? 'bg-red-400' : 'bg-emerald-500'}`}
                   style={{ width: `${budgetPct}%` }} />
               </div>
-              <p className="text-xs text-emerald-100 mt-1.5">
+              <p className="mt-2 text-xs font-semibold text-slate-500">
                 잔여 {formatKRW(Math.max(trip.budget - totalKRW, 0))} ({Math.round(100 - budgetPct)}% 남음)
               </p>
             </>
@@ -139,18 +139,18 @@ export function BudgetPage() {
       </div>
 
       {/* Tab */}
-      <div className="px-4 mb-3">
-        <div className="flex bg-gray-100 p-1 rounded-2xl gap-0.5">
+      <div className="px-5 mb-3">
+        <div className="tab-shell">
           {TABS.map(({ key, label }) => (
             <button key={key} onClick={() => setTab(key)}
-              className={`flex-1 py-2 rounded-xl text-xs font-semibold transition-all ${tab === key ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400'}`}>
+              className={`tab-button ${tab === key ? 'bg-slate-950 text-white shadow-sm' : 'text-slate-400'}`}>
               {label}
             </button>
           ))}
         </div>
       </div>
 
-      <div className="px-4 pb-6">
+      <div className="px-5 pb-6">
 
         {/* EXPENSES */}
         {tab === 'expenses' && (
@@ -159,7 +159,7 @@ export function BudgetPage() {
             {byCategory.length > 0 && (
               <div className="flex gap-2 overflow-x-auto pb-2 mb-3">
                 {byCategory.map(({ cat, total }) => (
-                  <span key={cat} className={`flex-shrink-0 text-xs px-2.5 py-1 rounded-full font-medium ${CAT_COLOR[cat]}`}>
+                  <span key={cat} className={`flex-shrink-0 rounded-full px-2.5 py-1 text-xs font-bold ${CAT_COLOR[cat]}`}>
                     {CAT_EMOJI[cat]} {CATEGORY_LABELS[cat]} {formatKRW(total)}
                   </span>
                 ))}
@@ -167,23 +167,23 @@ export function BudgetPage() {
             )}
             <div className="space-y-2 mb-4">
               {trip.expenses.map((e) => (
-                <div key={e.id} className="bg-white rounded-2xl border border-gray-100 px-4 py-3 flex items-center gap-3">
+                <div key={e.id} className="surface-card flex items-center gap-3 px-4 py-3">
                   <span className="text-xl flex-shrink-0">{CAT_EMOJI[e.category]}</span>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <p className="text-sm font-medium text-gray-800 truncate">{e.description}</p>
+                      <p className="truncate text-sm font-semibold text-slate-800">{e.description}</p>
                       {e.paidBy && (
                         <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0 ${PAYER_COLOR[e.paidBy] ?? 'bg-gray-100 text-gray-500'}`}>
                           {e.paidBy}
                         </span>
                       )}
                     </div>
-                    {e.notes && <p className="text-xs text-gray-400">{e.notes}</p>}
+                    {e.notes && <p className="text-xs text-slate-400">{e.notes}</p>}
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <p className="text-sm font-bold text-gray-900">{formatCurrency(e.amount, e.currency)}</p>
+                    <p className="text-sm font-black text-slate-950">{formatCurrency(e.amount, e.currency)}</p>
                     {e.currency !== 'KRW' && (
-                      <p className="text-xs text-gray-400">≈{formatKRW(toKRW(e))}</p>
+                      <p className="text-xs text-slate-400">≈{formatKRW(toKRW(e))}</p>
                     )}
                   </div>
                   <div className="flex flex-col gap-0.5 flex-shrink-0">
@@ -199,12 +199,12 @@ export function BudgetPage() {
                 </div>
               ))}
               {trip.expenses.length === 0 && (
-                <div className="text-center py-8 text-gray-400 text-sm">아직 지출 내역이 없어요</div>
+                <div className="py-8 text-center text-sm text-slate-400">아직 지출 내역이 없어요</div>
               )}
             </div>
             <button
               onClick={() => setExpenseModal({ open: true })}
-              className="w-full flex items-center justify-center gap-2 py-3.5 bg-blue-600 text-white rounded-2xl font-semibold text-sm"
+              className="primary-button w-full py-3.5"
             >
               <Plus size={18} /> 지출 추가
             </button>
@@ -216,16 +216,16 @@ export function BudgetPage() {
           <>
             <div className="space-y-2 mb-4">
               {trip.bookings.map((b) => (
-                <div key={b.id} className="bg-white rounded-2xl border border-gray-100 px-4 py-3">
+                <div key={b.id} className="surface-card px-4 py-3">
                   <div className="flex items-center gap-3">
                     <button
                       onClick={() => toggleBooking(b.id)}
-                      className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${b.status === 'booked' ? 'bg-green-500 border-green-500' : 'border-gray-300'}`}
+                      className={`flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border-2 transition-colors ${b.status === 'booked' ? 'border-emerald-500 bg-emerald-500' : 'border-slate-300'}`}
                     >
                       {b.status === 'booked' && <span className="text-white text-[10px] font-bold">✓</span>}
                     </button>
                     <div className="flex-1 min-w-0">
-                      <p className={`text-sm font-medium ${b.status === 'booked' ? 'text-gray-500 line-through' : 'text-gray-900'}`}>{b.label}</p>
+                      <p className={`text-sm font-semibold ${b.status === 'booked' ? 'text-slate-500 line-through' : 'text-slate-950'}`}>{b.label}</p>
                       <div className="flex items-center gap-2 mt-0.5">
                         <span className={`text-xs px-1.5 py-0.5 rounded-full ${b.status === 'booked' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
                           {b.status === 'booked' ? '예약완료' : '대기'}
@@ -250,12 +250,12 @@ export function BudgetPage() {
                 </div>
               ))}
               {trip.bookings.length === 0 && (
-                <div className="text-center py-8 text-gray-400 text-sm">예약 내역이 없어요</div>
+                <div className="py-8 text-center text-sm text-slate-400">예약 내역이 없어요</div>
               )}
             </div>
             <button
               onClick={() => setShowBookingForm(true)}
-              className="w-full flex items-center justify-center gap-2 py-3.5 bg-blue-600 text-white rounded-2xl font-semibold text-sm"
+              className="primary-button w-full py-3.5"
             >
               <Plus size={18} /> 예약 추가
             </button>
@@ -265,48 +265,48 @@ export function BudgetPage() {
         {/* CURRENCY */}
         {tab === 'currency' && (
           <div className="space-y-4">
-            <div className="bg-white rounded-2xl border border-gray-100 p-4">
-              <h3 className="text-sm font-semibold text-gray-700 mb-3">환율 계산기</h3>
+            <div className="surface-card p-4">
+              <h3 className="mb-3 text-sm font-bold text-slate-800">환율 계산기</h3>
               <input
                 type="number"
                 inputMode="decimal"
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl text-xl font-bold text-center focus:outline-none focus:ring-2 focus:ring-blue-400 bg-gray-50 mb-3"
+                className="field-input mb-3 py-3 text-center text-xl font-black"
                 placeholder="금액 입력"
                 value={convertInput}
                 onChange={(e) => setConvertInput(e.target.value)}
               />
               <div className="flex items-center gap-2">
-                <select className="flex-1 px-3 py-2.5 border border-gray-200 rounded-xl text-sm bg-gray-50"
+                <select className="field-input flex-1"
                   value={fromCur} onChange={(e) => setFromCur(e.target.value as Currency)}>
                   {CURRENCIES.map((c) => <option key={c} value={c}>{c} {CURRENCY_SYMBOLS[c]}</option>)}
                 </select>
                 <button onClick={() => { setFromCur(toCur); setToCur(fromCur); }}
-                  className="p-2.5 bg-gray-100 rounded-xl text-gray-500">
+                  className="rounded-xl bg-slate-100 p-2.5 text-slate-500">
                   <ArrowLeftRight size={18} />
                 </button>
-                <select className="flex-1 px-3 py-2.5 border border-gray-200 rounded-xl text-sm bg-gray-50"
+                <select className="field-input flex-1"
                   value={toCur} onChange={(e) => setToCur(e.target.value as Currency)}>
                   {CURRENCIES.map((c) => <option key={c} value={c}>{c} {CURRENCY_SYMBOLS[c]}</option>)}
                 </select>
               </div>
               {converted !== null && (
-                <div className="mt-4 p-4 bg-blue-50 rounded-xl text-center">
-                  <p className="text-xs text-blue-400 mb-1">{convertInput} {fromCur} =</p>
-                  <p className="text-2xl font-black text-blue-700">
+                <div className="mt-4 rounded-xl bg-sky-50 p-4 text-center">
+                  <p className="mb-1 text-xs font-bold text-sky-500">{convertInput} {fromCur} =</p>
+                  <p className="text-2xl font-black text-sky-700">
                     {CURRENCY_SYMBOLS[toCur]}{converted.toLocaleString('ko-KR', { maximumFractionDigits: 2 })}
                   </p>
-                  <p className="text-xs text-blue-400 mt-1">{toCur}</p>
+                  <p className="mt-1 text-xs font-bold text-sky-500">{toCur}</p>
                 </div>
               )}
             </div>
-            <div className="bg-white rounded-2xl border border-gray-100 p-4">
-              <h3 className="text-sm font-semibold text-gray-700 mb-3">환율 직접 설정</h3>
+            <div className="surface-card p-4">
+              <h3 className="mb-3 text-sm font-bold text-slate-800">환율 직접 설정</h3>
               <div className="space-y-3">
                 {exchangeRates.filter((r) => r.from === 'KRW').map((r) => (
                   <RateRow key={`${r.from}-${r.to}`} rate={r} onChange={(v) => setExchangeRate(r.from, r.to, v)} />
                 ))}
               </div>
-              <p className="text-xs text-gray-400 mt-3">탭하여 직접 수정</p>
+              <p className="mt-3 text-xs text-slate-400">탭하여 직접 수정</p>
             </div>
           </div>
         )}
@@ -315,11 +315,11 @@ export function BudgetPage() {
         {tab === 'settlement' && (
           <div className="space-y-4">
             {/* 지출처별 현황 */}
-            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-              <div className="px-4 py-3 border-b border-gray-50">
-                <p className="text-xs font-semibold text-gray-500">지출처별 현황</p>
+            <div className="surface-card overflow-hidden">
+              <div className="border-b border-slate-100 px-4 py-3">
+                <p className="section-label">지출처별 현황</p>
               </div>
-              <div className="divide-y divide-gray-50">
+              <div className="divide-y divide-slate-100">
                 {byPayer.map(({ payer, total }) => (
                   <div key={payer} className="flex items-center justify-between px-4 py-3">
                     <div className="flex items-center gap-2">
@@ -328,20 +328,20 @@ export function BudgetPage() {
                         <span className="text-[10px] text-gray-400">공동 ÷ 2</span>
                       )}
                     </div>
-                    <span className="text-sm font-bold text-gray-900">{formatKRW(total)}</span>
+                    <span className="text-sm font-black text-slate-950">{formatKRW(total)}</span>
                   </div>
                 ))}
-                <div className="flex items-center justify-between px-4 py-3 bg-gray-50">
-                  <span className="text-xs font-semibold text-gray-600">공동 합계 (생활비+기타)</span>
-                  <span className="text-sm font-bold text-gray-700">{formatKRW(sharedTotal)}</span>
+                <div className="flex items-center justify-between bg-slate-50 px-4 py-3">
+                  <span className="text-xs font-bold text-slate-600">공동 합계 (생활비+기타)</span>
+                  <span className="text-sm font-black text-slate-700">{formatKRW(sharedTotal)}</span>
                 </div>
               </div>
             </div>
 
             {/* 최종 부담 */}
-            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-              <div className="px-4 py-3 border-b border-gray-50">
-                <p className="text-xs font-semibold text-gray-500">최종 부담액 (개인 + 공동÷2)</p>
+            <div className="surface-card overflow-hidden">
+              <div className="border-b border-slate-100 px-4 py-3">
+                <p className="section-label">최종 부담액 (개인 + 공동÷2)</p>
               </div>
               <div className="p-4 space-y-3">
                 <div className="flex items-center justify-between">
@@ -349,23 +349,23 @@ export function BudgetPage() {
                     <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">곰이</span>
                     <span className="text-xs text-gray-400">{formatKRW(gomiTotal)} + {formatKRW(sharedTotal / 2)}</span>
                   </div>
-                  <span className="text-base font-black text-gray-900">{formatKRW(gomiResponsible)}</span>
+                  <span className="text-base font-black text-slate-950">{formatKRW(gomiResponsible)}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700">옹이</span>
                     <span className="text-xs text-gray-400">{formatKRW(ongiTotal)} + {formatKRW(sharedTotal / 2)}</span>
                   </div>
-                  <span className="text-base font-black text-gray-900">{formatKRW(ongiResponsible)}</span>
+                  <span className="text-base font-black text-slate-950">{formatKRW(ongiResponsible)}</span>
                 </div>
               </div>
             </div>
 
             {/* 이체 정산 */}
-            <div className={`rounded-2xl p-5 ${transferAmount > 0 ? 'bg-gradient-to-br from-blue-600 to-indigo-500' : 'bg-gray-100'}`}>
+            <div className={`rounded-xl p-5 ${transferAmount > 0 ? 'bg-slate-950' : 'bg-slate-100'}`}>
               {transferAmount > 0 ? (
                 <>
-                  <p className="text-blue-100 text-xs mb-3">정산 이체</p>
+                  <p className="mb-3 text-xs font-bold text-sky-200">정산 이체</p>
                   <div className="flex items-center justify-between gap-3">
                     <div className="text-center">
                       <p className="text-white/70 text-xs mb-1">이체자</p>
@@ -373,7 +373,7 @@ export function BudgetPage() {
                     </div>
                     <div className="flex-1 flex flex-col items-center gap-1">
                       <p className="text-white text-xl font-black">{formatKRW(transferAmount)}</p>
-                      <ArrowRight size={20} className="text-blue-200" />
+                      <ArrowRight size={20} className="text-sky-200" />
                     </div>
                     <div className="text-center">
                       <p className="text-white/70 text-xs mb-1">수취자</p>
@@ -382,11 +382,11 @@ export function BudgetPage() {
                   </div>
                 </>
               ) : (
-                <p className="text-center text-gray-500 text-sm font-medium py-2">지출 내역을 추가하면 정산 금액이 계산됩니다</p>
+                <p className="py-2 text-center text-sm font-semibold text-slate-500">지출 내역을 추가하면 정산 금액이 계산됩니다</p>
               )}
             </div>
 
-            <p className="text-xs text-gray-400 text-center px-4">
+            <p className="px-4 text-center text-xs text-slate-400">
               생활비·기타는 공동 지출로 반반 부담 계산됩니다
             </p>
           </div>
@@ -413,15 +413,15 @@ function RateRow({ rate, onChange }: { rate: { from: string; to: string; rate: n
       <span className="text-sm text-gray-600">1 {rate.from} → {rate.to}</span>
       {editing ? (
         <div className="flex items-center gap-2">
-          <input className="w-24 px-2 py-1.5 border border-blue-400 rounded-xl text-sm text-right bg-blue-50"
+          <input className="w-24 rounded-xl border border-sky-300 bg-sky-50 px-2 py-1.5 text-right text-sm"
             value={val} onChange={(e) => setVal(e.target.value)} autoFocus
             onBlur={() => { onChange(parseFloat(val) || rate.rate); setEditing(false); }}
             onKeyDown={(e) => e.key === 'Enter' && (onChange(parseFloat(val) || rate.rate), setEditing(false))}
           />
-          <span className="text-xs text-gray-400">{rate.to}</span>
+          <span className="text-xs text-slate-400">{rate.to}</span>
         </div>
       ) : (
-        <button onClick={() => setEditing(true)} className="text-sm font-semibold text-gray-900 px-3 py-1 bg-gray-50 rounded-xl">
+        <button onClick={() => setEditing(true)} className="rounded-xl bg-slate-50 px-3 py-1 text-sm font-bold text-slate-950">
           {rate.rate} {rate.to}
         </button>
       )}
@@ -443,11 +443,11 @@ function ExpenseModal({ existing, onSave, onClose }: {
   const isEdit = !!existing;
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-end">
-      <div className="bg-white w-full rounded-t-3xl p-5 pb-sheet space-y-3 max-h-[92vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-end bg-slate-950/50">
+      <div className="max-h-[92vh] w-full overflow-y-auto rounded-t-2xl bg-white p-5 pb-sheet shadow-2xl space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-base font-bold">{isEdit ? '지출 수정' : '지출 추가'}</h2>
-          <button onClick={onClose}><X size={20} className="text-gray-400" /></button>
+          <h2 className="text-base font-black text-slate-950">{isEdit ? '지출 수정' : '지출 추가'}</h2>
+          <button onClick={onClose} className="rounded-xl p-2 text-slate-400"><X size={20} /></button>
         </div>
 
         <Field label="내용">
@@ -469,7 +469,7 @@ function ExpenseModal({ existing, onSave, onClose }: {
           <div className="flex gap-2">
             {PAYER_OPTIONS.map((p) => (
               <button key={p} onClick={() => set('paidBy', p)}
-                className={`flex-1 py-2.5 rounded-xl text-sm font-semibold border transition-colors ${form.paidBy === p ? `border-transparent ${PAYER_COLOR[p]}` : 'bg-gray-50 text-gray-500 border-gray-200'}`}>
+                className={`flex-1 rounded-xl border py-2.5 text-sm font-bold transition-colors ${form.paidBy === p ? `border-transparent ${PAYER_COLOR[p]}` : 'border-slate-200 bg-white text-slate-500'}`}>
                 {p}
               </button>
             ))}
@@ -480,7 +480,7 @@ function ExpenseModal({ existing, onSave, onClose }: {
           <div className="grid grid-cols-4 gap-1.5">
             {CATEGORIES.map((c) => (
               <button key={c} onClick={() => set('category', c)}
-                className={`py-2 rounded-xl text-xs font-medium border transition-colors ${form.category === c ? 'bg-blue-600 text-white border-blue-600' : 'bg-gray-50 text-gray-600 border-gray-200'}`}>
+                className={`rounded-xl border py-2 text-xs font-bold transition-colors ${form.category === c ? 'border-slate-950 bg-slate-950 text-white' : 'border-slate-200 bg-white text-slate-600'}`}>
                 {CAT_EMOJI[c]}<br />{CATEGORY_LABELS[c]}
               </button>
             ))}
@@ -495,10 +495,10 @@ function ExpenseModal({ existing, onSave, onClose }: {
         </Field>
 
         <div className="flex gap-2 pt-1">
-          <button onClick={onClose} className="flex-1 py-3 rounded-2xl border border-gray-200 text-sm text-gray-600">취소</button>
+          <button onClick={onClose} className="secondary-button flex-1">취소</button>
           <button
             onClick={() => { if (form.description && form.amount) onSave(form, existing?.id); }}
-            className="flex-1 py-3 rounded-2xl bg-blue-600 text-white text-sm font-semibold"
+            className="primary-button flex-1"
           >
             {isEdit ? '수정 완료' : '저장'}
           </button>
@@ -513,15 +513,15 @@ function BookingModal({ onSave, onClose }: { onSave: (b: Omit<BookingLink, 'id'>
   const set = (k: string, v: unknown) => setForm((f) => ({ ...f, [k]: v }));
   const TYPES = [['flight', '✈️ 항공'], ['hotel', '🏨 숙소'], ['ferry', '⛴️ 페리'], ['tour', '🎯 투어'], ['other', '📌 기타']] as const;
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-end">
-      <div className="bg-white w-full rounded-t-3xl p-5 pb-sheet space-y-3 max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between"><h2 className="text-base font-bold">예약 추가</h2><button onClick={onClose}><X size={20} className="text-gray-400" /></button></div>
+    <div className="fixed inset-0 z-50 flex items-end bg-slate-950/50">
+      <div className="max-h-[90vh] w-full overflow-y-auto rounded-t-2xl bg-white p-5 pb-sheet shadow-2xl space-y-3">
+        <div className="flex items-center justify-between"><h2 className="text-base font-black text-slate-950">예약 추가</h2><button onClick={onClose} className="rounded-xl p-2 text-slate-400"><X size={20} /></button></div>
         <Field label="예약명"><input className={inputCls} value={form.label} onChange={(e) => set('label', e.target.value)} placeholder="OceanJet 페리 예약" autoFocus /></Field>
         <Field label="종류">
           <div className="flex gap-1.5 flex-wrap">
             {TYPES.map(([t, l]) => (
               <button key={t} onClick={() => set('type', t)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-medium border ${form.type === t ? 'bg-blue-600 text-white border-blue-600' : 'bg-gray-50 text-gray-600 border-gray-200'}`}>{l}</button>
+                className={`rounded-xl border px-3 py-1.5 text-xs font-bold ${form.type === t ? 'border-slate-950 bg-slate-950 text-white' : 'border-slate-200 bg-white text-slate-600'}`}>{l}</button>
             ))}
           </div>
         </Field>
@@ -532,15 +532,15 @@ function BookingModal({ onSave, onClose }: { onSave: (b: Omit<BookingLink, 'id'>
         </div>
         <Field label="메모"><input className={inputCls} value={form.notes ?? ''} onChange={(e) => set('notes', e.target.value)} /></Field>
         <div className="flex gap-2 pt-1">
-          <button onClick={onClose} className="flex-1 py-3 rounded-2xl border border-gray-200 text-sm text-gray-600">취소</button>
-          <button onClick={() => { if (form.label) onSave(form); }} className="flex-1 py-3 rounded-2xl bg-blue-600 text-white text-sm font-semibold">저장</button>
+          <button onClick={onClose} className="secondary-button flex-1">취소</button>
+          <button onClick={() => { if (form.label) onSave(form); }} className="primary-button flex-1">저장</button>
         </div>
       </div>
     </div>
   );
 }
 
-const inputCls = 'w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-gray-50';
+const inputCls = 'field-input';
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return <div><label className="block text-xs font-semibold text-gray-500 mb-1.5">{label}</label>{children}</div>;
+  return <div><label className="mb-1.5 block text-xs font-bold text-slate-500">{label}</label>{children}</div>;
 }

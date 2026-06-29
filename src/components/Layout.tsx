@@ -55,15 +55,15 @@ export function Layout() {
   const showIndicator = pullPx > 8 || refreshing;
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50 max-w-lg mx-auto relative">
+    <div className="app-shell">
       {/* Pull-to-refresh indicator */}
       {showIndicator && (
         <div
           className="fixed top-0 inset-x-0 max-w-lg mx-auto flex items-center justify-center z-30 pointer-events-none transition-all"
           style={{ paddingTop: `calc(env(safe-area-inset-top, 0px) + ${Math.min(pullPx, PULL_THRESHOLD)}px)` }}
         >
-          <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold shadow-sm transition-all ${
-            refreshing ? 'bg-blue-600 text-white' : progress >= 1 ? 'bg-blue-500 text-white' : 'bg-white text-blue-500 border border-blue-100'
+          <div className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold shadow-sm transition-all ${
+            refreshing ? 'bg-slate-950 text-white' : progress >= 1 ? 'bg-sky-500 text-white' : 'border border-sky-100 bg-white text-sky-600'
           }`}>
             <RefreshCw
               size={13}
@@ -86,9 +86,13 @@ export function Layout() {
         <Outlet />
       </main>
 
+      <div className="comparison-badge" aria-label="UX 리뉴얼 Preview 배포본">
+        UX 리뉴얼 Preview
+      </div>
+
       {/* Bottom Navigation — z-40 so modals (z-50) render above it */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40 max-w-lg mx-auto safe-bottom">
-        <div className="flex items-stretch h-16">
+      <nav className="fixed inset-x-0 bottom-0 z-40 mx-auto max-w-lg border-t border-slate-200/80 bg-white/90 shadow-[0_-10px_30px_rgba(15,23,42,0.08)] backdrop-blur-xl safe-bottom">
+        <div className="flex h-16 items-stretch px-2">
           {navItems.map(({ to, label, icon: Icon, end }) => (
             <NavLink
               key={to}
@@ -96,16 +100,16 @@ export function Layout() {
               end={end}
               className={({ isActive }) =>
                 `flex-1 flex flex-col items-center justify-center gap-0.5 transition-colors ${
-                  isActive ? 'text-blue-600' : 'text-gray-400 active:text-gray-600'
+                  isActive ? 'text-slate-950' : 'text-slate-400 active:text-slate-600'
                 }`
               }
             >
               {({ isActive }) => (
                 <>
-                  <div className={`p-1 rounded-xl transition-colors ${isActive ? 'bg-blue-50' : ''}`}>
+                  <div className={`rounded-xl p-1.5 transition-colors ${isActive ? 'bg-sky-50 text-sky-600' : ''}`}>
                     <Icon size={22} strokeWidth={isActive ? 2.5 : 1.8} />
                   </div>
-                  <span className={`text-[10px] font-medium ${isActive ? 'text-blue-600' : 'text-gray-400'}`}>
+                  <span className={`text-[10px] font-bold ${isActive ? 'text-slate-900' : 'text-slate-400'}`}>
                     {label}
                   </span>
                 </>

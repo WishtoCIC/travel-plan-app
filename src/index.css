@@ -10,15 +10,73 @@
   html {
     font-size: 16px;
     -webkit-text-size-adjust: 100%;
+    background: #eef2f7;
   }
   body {
     font-family: -apple-system, BlinkMacSystemFont, 'Pretendard', 'Apple SD Gothic Neo',
       'Noto Sans KR', 'Segoe UI', sans-serif;
-    @apply bg-gray-50 text-gray-800;
+    @apply bg-slate-100 text-slate-800 antialiased;
     overscroll-behavior: none;
   }
   input, select, textarea, button {
     font-family: inherit;
+  }
+  button, a, input, select, textarea {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white;
+  }
+  button {
+    @apply disabled:cursor-not-allowed;
+  }
+}
+
+@layer components {
+  .app-shell {
+    @apply relative mx-auto flex min-h-screen max-w-lg flex-col overflow-hidden bg-[#f6f8fb] text-slate-900 shadow-2xl shadow-slate-300/40;
+  }
+  .app-screen {
+    @apply min-h-screen bg-[#f6f8fb];
+  }
+  .app-header {
+    @apply sticky top-0 z-20 border-b border-slate-200/70 bg-white/90 px-5 pb-4 pt-11 backdrop-blur-xl;
+  }
+  .app-header-title {
+    @apply text-xl font-black tracking-normal text-slate-950;
+  }
+  .app-header-subtitle {
+    @apply mt-0.5 text-xs font-medium text-slate-500;
+  }
+  .page-pad {
+    @apply px-5 py-4;
+  }
+  .surface-card {
+    @apply rounded-xl border border-slate-200/80 bg-white shadow-sm shadow-slate-200/70;
+  }
+  .quiet-card {
+    @apply rounded-xl border border-slate-200/80 bg-white;
+  }
+  .icon-button {
+    @apply flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 shadow-sm shadow-slate-200/70 transition active:scale-95 active:bg-slate-50;
+  }
+  .primary-button {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 py-3 text-sm font-bold text-white shadow-sm shadow-slate-300 transition active:scale-[0.98];
+  }
+  .secondary-button {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition active:scale-[0.98] active:bg-slate-50;
+  }
+  .field-input {
+    @apply w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:ring-sky-400;
+  }
+  .section-label {
+    @apply text-xs font-bold uppercase tracking-[0.08em] text-slate-400;
+  }
+  .tab-shell {
+    @apply flex gap-1 rounded-xl border border-slate-200/80 bg-white p-1 shadow-sm shadow-slate-200/70;
+  }
+  .tab-button {
+    @apply flex-1 rounded-lg py-2 text-xs font-bold transition;
+  }
+  .comparison-badge {
+    @apply pointer-events-none fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] right-[max(1rem,calc((100vw-32rem)/2+1rem))] z-30 rounded-full border border-amber-200 bg-amber-50/95 px-3 py-1 text-[10px] font-black uppercase tracking-[0.08em] text-amber-700 shadow-sm shadow-amber-100 backdrop-blur;
   }
 }
 

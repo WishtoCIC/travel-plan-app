@@ -53,37 +53,37 @@ export function ChecklistPage() {
   const pct = allTotal > 0 ? Math.round((allDone / allTotal) * 100) : 0;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="app-screen">
       {/* Header */}
-      <div className="bg-white px-4 pt-12 pb-4 border-b border-gray-100">
+      <div className="app-header">
         <div className="flex items-center justify-between mb-2">
           <div>
-            <h1 className="text-xl font-bold text-gray-900">체크리스트</h1>
-            <p className="text-xs text-gray-400">{trip.title}</p>
+            <h1 className="app-header-title">체크리스트</h1>
+            <p className="app-header-subtitle">{trip.title}</p>
           </div>
           <div className="text-right">
-            <div className="text-lg font-black text-gray-900">{pct}%</div>
-            <div className="text-xs text-gray-400">{allDone}/{allTotal}</div>
+            <div className="text-lg font-black text-slate-950">{pct}%</div>
+            <div className="text-xs font-bold text-slate-400">{allDone}/{allTotal}</div>
           </div>
         </div>
         {/* Progress bar */}
-        <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-          <div className="h-full bg-gradient-to-r from-blue-500 to-cyan-400 rounded-full transition-all duration-500"
+        <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+          <div className="h-full rounded-full bg-sky-500 transition-all duration-500"
             style={{ width: `${pct}%` }} />
         </div>
       </div>
 
       {/* Category tabs */}
-      <div className="px-4 py-3">
+      <div className="px-5 py-3">
         <div className="flex gap-2 overflow-x-auto pb-1">
           {CATEGORIES.map((cat) => {
             const catItems = trip.checklist.filter((c) => c.category === cat);
             const catDone = catItems.filter((c) => c.done).length;
             return (
               <button key={cat} onClick={() => setActiveTab(cat)}
-                className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-2xl text-xs font-semibold border transition-all ${activeTab === cat ? CAT_COLOR[cat] : 'bg-white text-gray-400 border-gray-200'}`}>
+                className={`flex-shrink-0 flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-bold transition-all ${activeTab === cat ? CAT_COLOR[cat] : 'border-slate-200 bg-white text-slate-400'}`}>
                 {CAT_EMOJI[cat]} {CATEGORY_LABELS[cat]}
-                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${catDone === catItems.length && catItems.length > 0 ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-500'}`}>
+                <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-black ${catDone === catItems.length && catItems.length > 0 ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-500'}`}>
                   {catDone}/{catItems.length}
                 </span>
               </button>
@@ -93,25 +93,25 @@ export function ChecklistPage() {
       </div>
 
       {/* Add item */}
-      <div className="px-4 mb-3 flex gap-2">
+      <div className="mb-3 flex gap-2 px-5">
         <input
-          className="flex-1 px-3 py-2.5 border border-gray-200 rounded-2xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
+          className="field-input flex-1"
           placeholder="새 항목 추가..."
           value={newText}
           onChange={(e) => setNewText(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && addItem()}
         />
         <button onClick={() => setNewPriority(p => p === 'high' ? 'normal' : 'high')}
-          className={`px-3 py-2.5 rounded-2xl text-sm border transition-colors ${newPriority === 'high' ? 'bg-red-50 border-red-300 text-red-500' : 'bg-white border-gray-200 text-gray-400'}`}>
+          className={`rounded-xl border px-3 py-2.5 text-sm font-black transition-colors ${newPriority === 'high' ? 'border-red-300 bg-red-50 text-red-500' : 'border-slate-200 bg-white text-slate-400'}`}>
           ★
         </button>
-        <button onClick={addItem} className="px-4 py-2.5 bg-blue-600 text-white rounded-2xl font-semibold text-sm">
+        <button onClick={addItem} className="rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-bold text-white">
           추가
         </button>
       </div>
 
       {/* List */}
-      <div className="px-4 space-y-1.5 pb-6">
+      <div className="space-y-2 px-5 pb-6">
         {/* Pending items — high priority first */}
         {[...pending.filter((c) => c.priority === 'high'), ...pending.filter((c) => c.priority !== 'high')].map((item) => (
           <CheckItem key={item.id} item={item} onToggle={toggle} onDelete={remove} />
@@ -120,9 +120,9 @@ export function ChecklistPage() {
         {/* Divider */}
         {done.length > 0 && (
           <div className="flex items-center gap-2 py-2">
-            <div className="flex-1 h-px bg-gray-200" />
-            <span className="text-xs text-gray-400">완료 {done.length}개</span>
-            <div className="flex-1 h-px bg-gray-200" />
+            <div className="h-px flex-1 bg-slate-200" />
+            <span className="text-xs font-bold text-slate-400">완료 {done.length}개</span>
+            <div className="h-px flex-1 bg-slate-200" />
           </div>
         )}
 
@@ -134,7 +134,7 @@ export function ChecklistPage() {
         {filtered.length === 0 && (
           <div className="text-center py-12">
             <div className="text-4xl mb-2">{CAT_EMOJI[activeTab]}</div>
-            <p className="text-gray-400 text-sm">항목이 없어요. 위에서 추가해보세요!</p>
+            <p className="text-sm text-slate-400">항목이 없어요. 위에서 추가해보세요!</p>
           </div>
         )}
       </div>
@@ -148,18 +148,18 @@ function CheckItem({ item, onToggle, onDelete }: {
   onDelete: (id: string) => void;
 }) {
   return (
-    <div className={`flex items-center gap-3 px-4 py-3 rounded-2xl transition-all ${item.done ? 'bg-gray-100' : 'bg-white border border-gray-100'}`}>
+    <div className={`flex items-center gap-3 rounded-xl px-4 py-3 transition-all ${item.done ? 'border border-slate-200 bg-slate-100' : 'surface-card'}`}>
       <button
         onClick={() => onToggle(item.id)}
-        className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${item.done ? 'bg-blue-500 border-blue-500 scale-95' : 'border-gray-300'}`}
+        className={`flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border-2 transition-all ${item.done ? 'scale-95 border-sky-500 bg-sky-500' : 'border-slate-300'}`}
       >
         {item.done && <span className="text-white text-xs font-bold">✓</span>}
       </button>
-      <span className={`flex-1 text-sm ${item.done ? 'line-through text-gray-400' : item.priority === 'high' ? 'font-semibold text-gray-900' : 'text-gray-700'}`}>
+      <span className={`flex-1 text-sm ${item.done ? 'text-slate-400 line-through' : item.priority === 'high' ? 'font-bold text-slate-950' : 'font-medium text-slate-700'}`}>
         {item.priority === 'high' && !item.done && <span className="text-red-500 mr-1.5">★</span>}
         {item.text}
       </span>
-      <button onClick={() => onDelete(item.id)} className="p-2 text-gray-300 active:text-red-400 flex-shrink-0">
+      <button onClick={() => onDelete(item.id)} className="flex-shrink-0 rounded-xl p-2 text-slate-300 active:text-red-400">
         <X size={14} />
       </button>
     </div>

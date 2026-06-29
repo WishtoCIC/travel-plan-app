@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Plus, Calendar, DollarSign, CheckSquare, Plane, ChevronRight, ExternalLink, Settings, RefreshCw } from 'lucide-react';
 import { useTravelStore } from '../store/travelStore';
 import { formatKRW, getDaysBetween, formatDate } from '../utils/helpers';
+import heroImage from '../assets/hero.png';
 
 export function Dashboard() {
   const { trips, activeTrip, setActiveTrip, addTrip, joinByCode, syncStatus } = useTravelStore();
@@ -45,39 +46,41 @@ export function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="app-screen">
       {/* Header */}
-      <div className="bg-white px-4 pt-12 pb-4 flex items-center justify-between border-b border-gray-100">
+      <div className="app-header flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">TravelPlan ✈️</h1>
-          <p className="text-xs text-gray-400 mt-0.5">내 여행 계획</p>
+          <h1 className="app-header-title">TravelPlan</h1>
+          <p className="app-header-subtitle">내 여행 계획</p>
         </div>
         <div className="flex gap-2">
           {trip?.cloudEnabled && (
             <button
               onClick={handleRefresh}
-              className="w-9 h-9 bg-gray-100 rounded-full flex items-center justify-center text-gray-500"
+              className="icon-button"
               title="최신 데이터 가져오기"
             >
-              <RefreshCw size={17} className={refreshing || syncStatus === 'syncing' ? 'animate-spin text-blue-500' : ''} />
+              <RefreshCw size={17} className={refreshing || syncStatus === 'syncing' ? 'animate-spin text-sky-500' : ''} />
             </button>
           )}
           <button
             onClick={handleNewTrip}
-            className="w-9 h-9 bg-blue-600 rounded-full flex items-center justify-center text-white shadow-sm"
+            className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-950 text-white shadow-sm shadow-slate-300 transition active:scale-95"
+            title="새 여행 추가"
           >
             <Plus size={18} />
           </button>
           <button
             onClick={() => navigate('/settings')}
-            className="w-9 h-9 bg-gray-100 rounded-full flex items-center justify-center text-gray-500"
+            className="icon-button"
+            title="설정"
           >
             <Settings size={18} />
           </button>
         </div>
       </div>
 
-      <div className="px-4 py-4 space-y-4">
+      <div className="page-pad space-y-4">
 
         {/* Trip selector chips */}
         {trips.length > 1 && (
@@ -86,10 +89,10 @@ export function Dashboard() {
               <button
                 key={t.id}
                 onClick={() => setActiveTrip(t.id)}
-                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+                className={`flex-shrink-0 rounded-full border px-3 py-1.5 text-sm font-bold transition-colors ${
                   t.id === activeTrip
-                    ? 'bg-blue-600 text-white border-blue-600'
-                    : 'bg-white text-gray-600 border-gray-200'
+                    ? 'border-slate-950 bg-slate-950 text-white'
+                    : 'border-slate-200 bg-white text-slate-600'
                 }`}
               >
                 {t.coverEmoji} {t.title}
@@ -101,34 +104,40 @@ export function Dashboard() {
         {trip ? (
           <>
             {/* Hero card */}
-            <div className="bg-gradient-to-br from-blue-600 via-blue-500 to-cyan-400 rounded-2xl p-5 text-white shadow-lg">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="text-4xl mb-2">{trip.coverEmoji ?? '✈️'}</div>
-                  <h2 className="text-lg font-bold leading-tight">{trip.title}</h2>
-                  <p className="text-blue-100 text-sm mt-1">{trip.destination}</p>
-                  <p className="text-blue-100 text-xs mt-1">
+            <div className="relative overflow-hidden rounded-xl bg-slate-950 p-5 text-white shadow-lg shadow-slate-300/70">
+              <div
+                className="pointer-events-none absolute -bottom-9 -right-5 h-44 w-44 bg-contain bg-center bg-no-repeat opacity-55"
+                style={{ backgroundImage: `url(${heroImage})` }}
+              />
+              <div className="relative flex items-start justify-between">
+                <div className="min-w-0 flex-1 pr-4">
+                  <div className="mb-3 inline-flex items-center rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-xs font-bold text-sky-100">
+                    {trip.coverEmoji ?? '✈️'} {getDaysBetween(trip.startDate, trip.endDate) + 1}일 여정
+                  </div>
+                  <h2 className="text-2xl font-black leading-tight tracking-normal">{trip.title}</h2>
+                  <p className="mt-2 text-sm font-medium text-slate-200">{trip.destination}</p>
+                  <p className="mt-1 text-xs font-medium text-slate-300">
                     {formatDate(trip.startDate)} ~ {formatDate(trip.endDate)}
                     &nbsp;({getDaysBetween(trip.startDate, trip.endDate)}박 {getDaysBetween(trip.startDate, trip.endDate) + 1}일)
                   </p>
                 </div>
                 {daysUntil !== null && daysUntil > 0 && (
-                  <div className="text-right ml-3 flex-shrink-0">
+                  <div className="ml-3 flex-shrink-0 rounded-xl border border-white/10 bg-white/10 px-3 py-2 text-right backdrop-blur">
                     <div className="text-4xl font-black leading-none">{daysUntil}</div>
-                    <div className="text-blue-100 text-xs mt-1">일 후 출발</div>
+                    <div className="mt-1 text-xs font-bold text-slate-300">일 후 출발</div>
                   </div>
                 )}
                 {daysUntil !== null && daysUntil <= 0 && daysUntil >= -getDaysBetween(trip.startDate, trip.endDate) && (
-                  <div className="bg-white/20 rounded-xl px-3 py-2 text-center ml-3 flex-shrink-0">
+                  <div className="ml-3 flex-shrink-0 rounded-xl bg-white/15 px-3 py-2 text-center">
                     <div className="text-sm font-bold">여행 중!</div>
-                    <div className="text-xs text-blue-100">즐거운 여행 ✨</div>
+                    <div className="text-xs text-slate-300">즐거운 여행</div>
                   </div>
                 )}
               </div>
 
-              <div className="mt-4 flex items-center gap-1 flex-wrap">
+              <div className="relative mt-5 flex flex-wrap items-center gap-1.5">
                 {trip.travelers.map((t, i) => (
-                  <span key={i} className="bg-white/20 text-white text-xs px-2 py-0.5 rounded-full">{t}</span>
+                  <span key={i} className="rounded-full border border-white/10 bg-white/10 px-2 py-0.5 text-xs font-bold text-white">{t}</span>
                 ))}
               </div>
             </div>
@@ -171,20 +180,20 @@ export function Dashboard() {
 
             {/* Pending bookings alert */}
             {pendingBookings.length > 0 && (
-              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-amber-500 font-bold text-sm">⚠️ 예약 필요</span>
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+              <div className="flex items-center gap-2 mb-2">
+                  <span className="text-sm font-bold text-amber-700">예약 필요</span>
                 </div>
                 <div className="space-y-2">
                   {pendingBookings.map((b) => (
                     <div key={b.id} className="flex items-center justify-between">
-                      <span className="text-sm text-amber-800">{b.label}</span>
+                      <span className="text-sm font-medium text-amber-900">{b.label}</span>
                       {b.url && (
                         <a
                           href={b.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center gap-1 text-xs font-semibold text-blue-600 bg-white px-2.5 py-1 rounded-full border border-blue-200"
+                          className="flex items-center gap-1 rounded-full border border-amber-200 bg-white px-2.5 py-1 text-xs font-bold text-slate-700"
                         >
                           예약 <ExternalLink size={11} />
                         </a>
@@ -196,31 +205,31 @@ export function Dashboard() {
             )}
 
             {/* Itinerary preview */}
-            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-              <div className="flex items-center justify-between px-4 py-3 border-b border-gray-50">
-                <h3 className="text-sm font-semibold text-gray-700">일정 미리보기</h3>
-                <button onClick={() => navigate('/itinerary')} className="text-xs text-blue-600 font-medium flex items-center gap-0.5">
+            <div className="surface-card overflow-hidden">
+              <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+                <h3 className="text-sm font-bold text-slate-800">일정 미리보기</h3>
+                <button onClick={() => navigate('/itinerary')} className="flex items-center gap-0.5 text-xs font-bold text-sky-600">
                   전체 <ChevronRight size={13} />
                 </button>
               </div>
-              <div className="divide-y divide-gray-50">
+              <div className="divide-y divide-slate-100">
                 {trip.itinerary.slice(0, 4).map((day, idx) => (
-                  <div key={day.id} className="flex items-center gap-3 px-4 py-3" onClick={() => navigate('/itinerary')}>
-                    <div className="w-7 h-7 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">
+                  <button key={day.id} className="flex w-full items-center gap-3 px-4 py-3 text-left transition active:bg-slate-50" onClick={() => navigate('/itinerary')}>
+                    <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-sky-50 text-xs font-black text-sky-600">
                       {idx + 1}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="text-xs text-gray-500">{formatDate(day.date)}</span>
-                        <span className="text-xs font-medium text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-full">{day.region}</span>
+                        <span className="text-xs font-medium text-slate-500">{formatDate(day.date)}</span>
+                        <span className="rounded-full bg-sky-50 px-1.5 py-0.5 text-xs font-bold text-sky-600">{day.region}</span>
                       </div>
-                      <p className="text-sm text-gray-700 mt-0.5 truncate">{day.items.map((i) => i.activity).join(' · ')}</p>
+                      <p className="mt-0.5 truncate text-sm font-medium text-slate-700">{day.items.map((i) => i.activity).join(' · ')}</p>
                     </div>
-                    <ChevronRight size={15} className="text-gray-300 flex-shrink-0" />
-                  </div>
+                    <ChevronRight size={15} className="flex-shrink-0 text-slate-300" />
+                  </button>
                 ))}
                 {trip.itinerary.length > 4 && (
-                  <div className="px-4 py-3 text-center text-xs text-gray-400">
+                  <div className="px-4 py-3 text-center text-xs font-medium text-slate-400">
                     +{trip.itinerary.length - 4}일 더 있음
                   </div>
                 )}
@@ -228,10 +237,10 @@ export function Dashboard() {
             </div>
           </>
         ) : (
-          <div className="text-center py-20">
+          <div className="py-20 text-center">
             <div className="text-6xl mb-4">🗺️</div>
-            <p className="text-gray-500 font-medium">아직 여행이 없어요</p>
-            <p className="text-gray-400 text-sm mt-1">+ 버튼을 눌러 새 여행을 추가하세요</p>
+            <p className="font-bold text-slate-600">아직 여행이 없어요</p>
+            <p className="mt-1 text-sm text-slate-400">+ 버튼을 눌러 새 여행을 추가하세요</p>
           </div>
         )}
       </div>
@@ -249,16 +258,16 @@ function StatCard({
   color: 'blue' | 'emerald' | 'orange' | 'purple';
   onClick?: () => void;
 }) {
-  const bg = { blue: 'bg-blue-50', emerald: 'bg-emerald-50', orange: 'bg-orange-50', purple: 'bg-purple-50' }[color];
+  const bg = { blue: 'bg-sky-50', emerald: 'bg-emerald-50', orange: 'bg-orange-50', purple: 'bg-violet-50' }[color];
   return (
     <button
       onClick={onClick}
-      className="bg-white rounded-2xl border border-gray-100 p-4 text-left active:scale-95 transition-transform w-full"
+      className="surface-card w-full p-4 text-left transition active:scale-[0.98]"
     >
-      <div className={`w-8 h-8 ${bg} rounded-xl flex items-center justify-center mb-2`}>{icon}</div>
-      <div className="text-xs text-gray-400 mb-0.5">{label}</div>
-      <div className="text-base font-bold text-gray-900">{value}</div>
-      <div className="text-xs text-gray-400 mt-0.5">{sub}</div>
+      <div className={`mb-3 flex h-9 w-9 items-center justify-center rounded-xl ${bg}`}>{icon}</div>
+      <div className="mb-0.5 text-xs font-bold text-slate-400">{label}</div>
+      <div className="text-lg font-black text-slate-950">{value}</div>
+      <div className="mt-0.5 text-xs font-medium text-slate-400">{sub}</div>
     </button>
   );
 }

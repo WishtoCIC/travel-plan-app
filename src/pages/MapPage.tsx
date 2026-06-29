@@ -58,20 +58,20 @@ export function MapPage() {
     : null;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="app-screen">
       {/* Header */}
-      <div className="bg-white px-4 pt-12 pb-4 border-b border-gray-100">
-        <h1 className="text-xl font-bold text-gray-900">지도 & 장소</h1>
-        <p className="text-xs text-gray-400">{trip.title} · {trip.locations.length}곳</p>
+      <div className="app-header">
+        <h1 className="app-header-title">지도 & 장소</h1>
+        <p className="app-header-subtitle">{trip.title} · {trip.locations.length}곳</p>
       </div>
 
       {/* Search bar */}
-      <div className="px-4 py-3">
+      <div className="px-5 py-3">
         <div className="flex gap-2">
           <div className="relative flex-1">
-            <Search size={16} className="absolute left-3 top-3 text-gray-400" />
+            <Search size={16} className="absolute left-3 top-3 text-slate-400" />
             <input
-              className="w-full pl-9 pr-3 py-2.5 bg-white border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="field-input w-full pl-9"
               placeholder="장소 검색..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -79,7 +79,7 @@ export function MapPage() {
             />
           </div>
           <button onClick={searchGoogleMaps}
-            className="flex items-center gap-1.5 px-3 py-2.5 bg-blue-600 text-white rounded-2xl text-sm font-medium">
+            className="primary-button px-3 py-2.5">
             <ExternalLink size={15} /> 구글맵
           </button>
         </div>
@@ -87,18 +87,18 @@ export function MapPage() {
 
       {/* Embedded map */}
       {mapSrc && (
-        <div className="px-4 mb-3">
-          <div className="h-48 rounded-2xl overflow-hidden border border-gray-200 shadow-sm">
+        <div className="mb-3 px-5">
+          <div className="h-52 overflow-hidden rounded-xl border border-slate-200 shadow-sm shadow-slate-200/70">
             <iframe src={mapSrc} width="100%" height="100%" style={{ border: 0 }} loading="lazy" title="지도" />
           </div>
           {selected && (
-            <div className="mt-2 flex items-center justify-between bg-white px-4 py-3 rounded-2xl border border-gray-100">
+            <div className="surface-card mt-2 flex items-center justify-between px-4 py-3">
               <div>
-                <p className="text-sm font-semibold text-gray-900">{TYPE_EMOJI[selected.type]} {selected.name}</p>
-                {selected.address && <p className="text-xs text-gray-400 truncate max-w-56">{selected.address}</p>}
+                <p className="text-sm font-bold text-slate-950">{TYPE_EMOJI[selected.type]} {selected.name}</p>
+                {selected.address && <p className="max-w-56 truncate text-xs text-slate-400">{selected.address}</p>}
               </div>
               <button onClick={() => openGoogleMaps(selected)}
-                className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white rounded-xl text-xs font-medium flex-shrink-0 ml-2">
+                className="ml-2 flex flex-shrink-0 items-center gap-1 rounded-xl bg-slate-950 px-3 py-1.5 text-xs font-bold text-white">
                 <Navigation size={12} /> 길찾기
               </button>
             </div>
@@ -107,35 +107,44 @@ export function MapPage() {
       )}
 
       {/* Location list */}
-      <div className="px-4 space-y-2 mb-4">
+      <div className="mb-4 space-y-2 px-5">
         {filtered.map((loc) => (
-          <button
+          <div
             key={loc.id}
+            role="button"
+            tabIndex={0}
             onClick={() => setSelected(selected?.id === loc.id ? null : loc)}
-            className={`w-full flex items-start gap-3 px-4 py-3 rounded-2xl border text-left transition-all ${selected?.id === loc.id ? 'border-blue-400 bg-blue-50' : 'bg-white border-gray-100'}`}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                setSelected(selected?.id === loc.id ? null : loc);
+              }
+            }}
+            className={`flex w-full items-start gap-3 rounded-xl border px-4 py-3 text-left transition-all ${selected?.id === loc.id ? 'border-sky-300 bg-sky-50' : 'border-slate-200 bg-white'}`}
           >
             <span className="text-2xl flex-shrink-0">{TYPE_EMOJI[loc.type]}</span>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-sm font-semibold text-gray-900">{loc.name}</span>
-                <span className={`text-xs px-1.5 py-0.5 rounded-full ${TYPE_COLOR[loc.type]}`}>{TYPE_LABEL[loc.type]}</span>
+                <span className="text-sm font-bold text-slate-950">{loc.name}</span>
+                <span className={`rounded-full px-1.5 py-0.5 text-xs font-bold ${TYPE_COLOR[loc.type]}`}>{TYPE_LABEL[loc.type]}</span>
               </div>
-              {loc.address && <p className="text-xs text-gray-400 mt-0.5 truncate">{loc.address}</p>}
-              {loc.notes && <p className="text-xs text-gray-500 mt-0.5">{loc.notes}</p>}
+              {loc.address && <p className="mt-0.5 truncate text-xs text-slate-400">{loc.address}</p>}
+              {loc.notes && <p className="mt-0.5 text-xs text-slate-500">{loc.notes}</p>}
             </div>
             <button
               onClick={(e) => { e.stopPropagation(); openGoogleMaps(loc); }}
-              className="flex-shrink-0 p-2 text-blue-400 active:text-blue-600 bg-blue-50 rounded-xl"
+              className="flex-shrink-0 rounded-xl bg-white p-2 text-sky-500 active:text-sky-700"
+              title={`${loc.name} 길찾기`}
             >
               <Navigation size={15} />
             </button>
-          </button>
+          </div>
         ))}
       </div>
 
       {/* Quick links */}
-      <div className="px-4 pb-6">
-        <p className="text-xs font-semibold text-gray-400 mb-2">빠른 검색</p>
+      <div className="px-5 pb-6">
+        <p className="section-label mb-2">빠른 검색</p>
         <div className="space-y-2">
           {QUICK_LINKS.map(({ label, base }) => (
             <a
@@ -143,10 +152,10 @@ export function MapPage() {
               href={`${base}${encodeURIComponent(trip.destination)}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-between px-4 py-3 bg-white rounded-2xl border border-gray-100 text-sm text-gray-700 active:bg-gray-50"
+              className="surface-card flex items-center justify-between px-4 py-3 text-sm font-semibold text-slate-700 active:bg-slate-50"
             >
               {label}
-              <ExternalLink size={14} className="text-gray-400" />
+              <ExternalLink size={14} className="text-slate-400" />
             </a>
           ))}
         </div>

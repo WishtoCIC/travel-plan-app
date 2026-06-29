@@ -27,7 +27,11 @@ export function ItineraryPage() {
   function toggleDay(id: string) {
     setOpenDays((prev) => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
       return next;
     });
   }
@@ -75,54 +79,54 @@ export function ItineraryPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="app-screen">
       {/* Header */}
-      <div className="bg-white px-4 pt-12 pb-4 border-b border-gray-100">
+      <div className="app-header">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-bold text-gray-900">여행 일정</h1>
-            <p className="text-xs text-gray-400">{trip.title} · {trip.itinerary.length}일</p>
+            <h1 className="app-header-title">여행 일정</h1>
+            <p className="app-header-subtitle">{trip.title} · {trip.itinerary.length}일</p>
           </div>
           <button
             onClick={addDay}
-            className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 text-white rounded-full text-sm font-medium"
+            className="primary-button px-3 py-2"
           >
             <Plus size={15} /> 날짜 추가
           </button>
         </div>
       </div>
 
-      <div className="px-4 py-3 space-y-2">
+      <div className="page-pad space-y-3">
         {trip.itinerary.map((day, idx) => {
           const isOpen = openDays.has(day.id);
           const bookedCount = day.items.filter((i) => i.status === 'booked').length;
           return (
-            <div key={day.id} className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
+            <div key={day.id} className="surface-card overflow-hidden">
               {/* Day header */}
               <div className="flex items-center">
                 <button
                   onClick={() => toggleDay(day.id)}
-                  className="flex-1 flex items-center gap-3 px-4 py-3.5 text-left min-w-0"
+                  className="flex-1 flex items-center gap-3 px-4 py-3.5 text-left min-w-0 transition active:bg-slate-50"
                 >
-                  <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 shadow-sm">
+                  <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-slate-950 text-sm font-black text-white shadow-sm">
                     {idx + 1}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
-                      <span className="text-sm font-semibold text-gray-900">{formatDate(day.date)}</span>
+                      <span className="text-sm font-bold text-slate-950">{formatDate(day.date)}</span>
                       {day.region && (
-                        <span className="text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full font-medium">{day.region}</span>
+                        <span className="rounded-full bg-sky-50 px-2 py-0.5 text-xs font-bold text-sky-600">{day.region}</span>
                       )}
                     </div>
-                    <p className="text-xs text-gray-400 mt-0.5">
+                    <p className="mt-0.5 text-xs font-medium text-slate-400">
                       {day.items.length}개 일정 {bookedCount > 0 && `· 예약완료 ${bookedCount}개`}
                     </p>
                   </div>
-                  {isOpen ? <ChevronUp size={18} className="text-gray-300 flex-shrink-0" /> : <ChevronDown size={18} className="text-gray-300 flex-shrink-0" />}
+                  {isOpen ? <ChevronUp size={18} className="flex-shrink-0 text-slate-300" /> : <ChevronDown size={18} className="flex-shrink-0 text-slate-300" />}
                 </button>
                 <button
                   onClick={() => deleteDay(day.id)}
-                  className="p-3 mr-2 text-gray-300 hover:text-red-500 active:bg-red-50 rounded-xl flex-shrink-0"
+                  className="mr-2 flex-shrink-0 rounded-xl p-3 text-slate-300 active:bg-red-50 active:text-red-500"
                 >
                   <Trash2 size={16} />
                 </button>
@@ -130,9 +134,9 @@ export function ItineraryPage() {
 
               {/* Items */}
               {isOpen && (
-                <div className="border-t border-gray-50 px-4 py-2 space-y-1">
+                <div className="space-y-1 border-t border-slate-100 px-4 py-2">
                   {day.items.map((item) => (
-                    <div key={item.id} className="flex items-start gap-3 py-2.5 border-b border-gray-50 last:border-0">
+                    <div key={item.id} className="flex items-start gap-3 border-b border-slate-100 py-2.5 last:border-0">
                       <button
                         onClick={() => cycleStatus(day.id, item)}
                         className={`text-xs px-2 py-1 rounded-full font-medium flex-shrink-0 mt-0.5 ${STATUS_STYLE[item.status]}`}
@@ -141,33 +145,33 @@ export function ItineraryPage() {
                       </button>
                       <div className="flex-1 min-w-0">
                         {item.time && (
-                          <div className="flex items-center gap-1 text-xs text-gray-400 mb-0.5">
+                          <div className="mb-0.5 flex items-center gap-1 text-xs font-medium text-slate-400">
                             {item.time === '종일'
                               ? <><Sun size={11} />종일</>
                               : <><Clock size={11} />{item.time}</>}
                           </div>
                         )}
-                        <p className="text-sm text-gray-800 font-medium">{item.activity}</p>
+                        <p className="text-sm font-semibold text-slate-800">{item.activity}</p>
                         {item.location && (
-                          <div className="flex items-center gap-1 text-xs text-gray-400 mt-0.5">
+                          <div className="mt-0.5 flex items-center gap-1 text-xs font-medium text-slate-400">
                             <MapPin size={11} />{item.location}
                           </div>
                         )}
-                        {item.notes && <p className="text-xs text-gray-400 mt-0.5">{item.notes}</p>}
+                        {item.notes && <p className="mt-0.5 text-xs text-slate-400">{item.notes}</p>}
                         {item.bookingLink && (
                           <a href={item.bookingLink} target="_blank" rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-xs text-blue-500 font-medium mt-1">
+                            className="mt-1 inline-flex items-center gap-1 text-xs font-bold text-sky-600">
                             예약링크 <ExternalLink size={11} />
                           </a>
                         )}
                       </div>
                       <div className="flex gap-1 flex-shrink-0">
                         <button onClick={() => setEditingItem({ dayId: day.id, item })}
-                          className="p-2 text-gray-300 hover:text-blue-500 rounded-xl active:bg-blue-50">
+                          className="rounded-xl p-2 text-slate-300 active:bg-sky-50 active:text-sky-500">
                           <Edit2 size={14} />
                         </button>
                         <button onClick={() => deleteItem(day.id, item.id)}
-                          className="p-2 text-gray-300 hover:text-red-500 rounded-xl active:bg-red-50">
+                          className="rounded-xl p-2 text-slate-300 active:bg-red-50 active:text-red-500">
                           <Trash2 size={14} />
                         </button>
                       </div>
@@ -175,7 +179,7 @@ export function ItineraryPage() {
                   ))}
                   <button
                     onClick={() => setEditingItem({ dayId: day.id, item: { id: generateId(), activity: '', status: 'planned' } })}
-                    className="w-full flex items-center gap-2 py-2.5 text-blue-500 text-sm"
+                    className="flex w-full items-center gap-2 py-2.5 text-sm font-bold text-sky-600"
                   >
                     <Plus size={15} /> 일정 추가
                   </button>
@@ -234,11 +238,11 @@ function ItemModal({ dayId, item, onSave, onClose }: {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-end">
-      <div className="bg-white w-full rounded-t-3xl p-5 pb-sheet space-y-4 max-h-[85vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-end bg-slate-950/50">
+      <div className="max-h-[85vh] w-full overflow-y-auto rounded-t-2xl bg-white p-5 pb-sheet shadow-2xl space-y-4">
         <div className="flex items-center justify-between mb-1">
-          <h2 className="text-base font-bold text-gray-900">일정 {isNew ? '추가' : '수정'}</h2>
-          <button onClick={onClose} className="p-2 text-gray-400 rounded-full"><X size={20} /></button>
+          <h2 className="text-base font-black text-slate-950">일정 {isNew ? '추가' : '수정'}</h2>
+          <button onClick={onClose} className="rounded-xl p-2 text-slate-400"><X size={20} /></button>
         </div>
         <Field label="활동 *">
           <input className={inputCls} value={form.activity} onChange={(e) => set('activity', e.target.value)} placeholder="예: 초콜릿힐 투어" autoFocus />
@@ -249,7 +253,7 @@ function ItemModal({ dayId, item, onSave, onClose }: {
               type="button"
               onClick={toggleAllDay}
               className={`flex items-center gap-1 px-3 py-2.5 rounded-xl text-sm font-medium border flex-shrink-0 transition-colors ${
-                isAllDay ? 'bg-blue-600 text-white border-blue-600' : 'bg-gray-50 text-gray-500 border-gray-200'
+                isAllDay ? 'border-slate-950 bg-slate-950 text-white' : 'border-slate-200 bg-white text-slate-500'
               }`}
             >
               <Sun size={14} /> 종일
@@ -296,10 +300,10 @@ function ItemModal({ dayId, item, onSave, onClose }: {
           <textarea className={inputCls} rows={2} value={form.notes ?? ''} onChange={(e) => set('notes', e.target.value)} placeholder="추가 메모" />
         </Field>
         <div className="flex gap-2 pt-1">
-          <button onClick={onClose} className="flex-1 py-3 rounded-2xl border border-gray-200 text-sm text-gray-600 font-medium">취소</button>
+          <button onClick={onClose} className="secondary-button flex-1">취소</button>
           <button
             onClick={() => { if (form.activity.trim()) onSave(dayId, form); }}
-            className="flex-1 py-3 rounded-2xl bg-blue-600 text-white text-sm font-semibold"
+            className="primary-button flex-1"
           >
             저장
           </button>
@@ -309,7 +313,7 @@ function ItemModal({ dayId, item, onSave, onClose }: {
   );
 }
 
-const inputCls = 'w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-gray-50';
+const inputCls = 'field-input';
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return <div><label className="block text-xs font-semibold text-gray-500 mb-1.5">{label}</label>{children}</div>;
+  return <div><label className="mb-1.5 block text-xs font-bold text-slate-500">{label}</label>{children}</div>;
 }
