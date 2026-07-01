@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Navigation, ExternalLink, Search, Plus, Edit2, Trash2, X } from 'lucide-react';
 import { useTravelStore } from '../store/travelStore';
 import { generateId } from '../utils/helpers';
-import type { TravelLocation } from '../types/travel';
+import type { QuickSearchLink, TravelLocation } from '../types/travel';
 
 const LOCATION_TYPES: TravelLocation['type'][] = ['hotel', 'airport', 'attraction', 'restaurant', 'port', 'other'];
 
@@ -21,10 +21,10 @@ const TYPE_COLOR: Record<string, string> = {
   other: 'bg-gray-100 text-gray-600',
 };
 
-const QUICK_LINKS = [
-  { label: '🗺️ 구글 지도', base: 'https://www.google.com/maps/search/?api=1&query=' },
-  { label: '🎫 Klook', base: 'https://www.klook.com/ko/search/?q=' },
-  { label: '⭐ 트립어드바이저', base: 'https://www.tripadvisor.co.kr/Search?q=' },
+const DEFAULT_QUICK_LINKS: QuickSearchLink[] = [
+  { id: 'quick1', label: '🗺️ 구글 지도', url: 'https://www.google.com/maps/search/?api=1&query={query}' },
+  { id: 'quick2', label: '🎫 Klook', url: 'https://www.klook.com/ko/search/?q={query}' },
+  { id: 'quick3', label: '⭐ 트립어드바이저', url: 'https://www.tripadvisor.co.kr/Search?q={query}' },
 ];
 
 export function MapPage() {
@@ -33,6 +33,7 @@ export function MapPage() {
   const [selected, setSelected] = useState<TravelLocation | null>(null);
   const [search, setSearch] = useState('');
   const [editingLocation, setEditingLocation] = useState<TravelLocation | null>(null);
+  const [editingQuickLink, setEditingQuickLink] = useState<QuickSearchLink | null>(null);
 
   if (!trip) return (
     <div className="flex flex-col items-center justify-center min-h-screen text-gray-400">
@@ -44,6 +45,7 @@ export function MapPage() {
   const filtered = trip.locations.filter(
     (l) => !search || l.name.includes(search) || (l.address ?? '').includes(search)
   );
+  const quickLinks = trip.quickLinks ?? DEFAULT_QUICK_LINKS;
 
   function openGoogleMaps(loc: TravelLocation) {
     const q = loc.lat && loc.lng ? `${loc.lat},${loc.lng}` : encodeURIComponent(loc.address ?? loc.name);
@@ -79,6 +81,38 @@ export function MapPage() {
   function deleteLocation(id: string) {
     updateTrip(trip.id, { locations: trip.locations.filter((loc) => loc.id !== id) });
     if (selected?.id === id) setSelected(null);
+  }
+
+  function buildQuickLinkUrl(link: QuickSearchLink) {
+    const query = encodeURIComponent(search || trip.destination);
+    return link.url.includes('{query}') ? link.url.replaceAll('{query}', query) : link.url;
+  }
+
+  function addQuickLink() {
+    setEditingQuickLink({ id: generateId(), label: '', url: '' });
+  }
+
+  function saveQuickLink(link: QuickSearchLink) {
+    const normalizedLink = {
+      ...link,
+      label: link.label.trim(),
+      url: link.url.trim(),
+    };
+    if (!normalizedLink.label || !normalizedLink.url) return;
+
+    const currentQuickLinks = trip.quickLinks ?? DEFAULT_QUICK_LINKS;
+    const exists = currentQuickLinks.some((item) => item.id === normalizedLink.id);
+    const quickLinks = exists
+      ? currentQuickLinks.map((item) => item.id === normalizedLink.id ? normalizedLink : item)
+      : [...currentQuickLinks, normalizedLink];
+
+    updateTrip(trip.id, { quickLinks });
+    setEditingQuickLink(null);
+  }
+
+  function deleteQuickLink(id: string) {
+    const currentQuickLinks = trip.quickLinks ?? DEFAULT_QUICK_LINKS;
+    updateTrip(trip.id, { quickLinks: currentQuickLinks.filter((link) => link.id !== id) });
   }
 
   const mapSrc = selected?.lat && selected?.lng
@@ -201,20 +235,46 @@ export function MapPage() {
 
       {/* Quick links */}
       <div className="px-5 pb-6">
-        <p className="section-label mb-2">빠른 검색</p>
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <p className="section-label">빠른 검색</p>
+          <button onClick={addQuickLink} className="secondary-button px-3 py-1.5 text-xs">
+            <Plus size={13} /> 추가
+          </button>
+        </div>
         <div className="space-y-2">
-          {QUICK_LINKS.map(({ label, base }) => (
-            <a
-              key={label}
-              href={`${base}${encodeURIComponent(trip.destination)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="surface-card flex items-center justify-between px-4 py-3 text-sm font-semibold text-slate-700 active:bg-slate-50"
+          {quickLinks.map((link) => (
+            <div
+              key={link.id}
+              className="surface-card flex items-center gap-2 px-4 py-3 text-sm font-semibold text-slate-700"
             >
-              {label}
-              <ExternalLink size={14} className="text-slate-400" />
-            </a>
+              <a
+                href={buildQuickLinkUrl(link)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex min-w-0 flex-1 items-center justify-between gap-3 active:text-sky-600"
+              >
+                <span className="truncate">{link.label}</span>
+                <ExternalLink size={14} className="flex-shrink-0 text-slate-400" />
+              </a>
+              <button
+                onClick={() => setEditingQuickLink(link)}
+                className="flex-shrink-0 rounded-xl bg-white p-2 text-slate-300 active:text-sky-500"
+                title={`${link.label} 수정`}
+              >
+                <Edit2 size={15} />
+              </button>
+              <button
+                onClick={() => deleteQuickLink(link.id)}
+                className="flex-shrink-0 rounded-xl bg-white p-2 text-slate-300 active:text-red-500"
+                title={`${link.label} 삭제`}
+              >
+                <Trash2 size={15} />
+              </button>
+            </div>
           ))}
+          {quickLinks.length === 0 && (
+            <div className="py-5 text-center text-sm text-slate-400">빠른 검색 링크가 없어요.</div>
+          )}
         </div>
       </div>
 
@@ -223,6 +283,14 @@ export function MapPage() {
           location={editingLocation}
           onSave={saveLocation}
           onClose={() => setEditingLocation(null)}
+        />
+      )}
+
+      {editingQuickLink && (
+        <QuickLinkModal
+          link={editingQuickLink}
+          onSave={saveQuickLink}
+          onClose={() => setEditingQuickLink(null)}
         />
       )}
     </div>
@@ -339,6 +407,63 @@ function LocationModal({ location, onSave, onClose }: {
               value={form.notes ?? ''}
               onChange={(e) => set('notes', e.target.value)}
               placeholder="체크인, 이동 팁 등"
+            />
+          </Field>
+
+          <div className="flex gap-2 pt-1">
+            <button onClick={onClose} className="secondary-button flex-1">취소</button>
+            <button onClick={handleSave} className="primary-button flex-1">저장</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function QuickLinkModal({ link, onSave, onClose }: {
+  link: QuickSearchLink;
+  onSave: (link: QuickSearchLink) => void;
+  onClose: () => void;
+}) {
+  const [form, setForm] = useState(link);
+  const isNew = !link.label;
+
+  function set<K extends keyof QuickSearchLink>(key: K, value: QuickSearchLink[K]) {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function handleSave() {
+    if (!form.label.trim() || !form.url.trim()) return;
+    onSave(form);
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end bg-slate-950/50">
+      <div className="max-h-[90vh] w-full overflow-y-auto rounded-t-2xl bg-white p-5 pb-sheet shadow-2xl">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-base font-black text-slate-950">빠른 검색 {isNew ? '추가' : '수정'}</h2>
+          <button onClick={onClose} className="rounded-xl p-2 text-slate-400">
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          <Field label="이름">
+            <input
+              className="field-input"
+              value={form.label}
+              onChange={(e) => set('label', e.target.value)}
+              placeholder="예: 🗺️ 구글 지도"
+              autoFocus
+            />
+          </Field>
+
+          <Field label="URL">
+            <input
+              className="field-input"
+              value={form.url}
+              onChange={(e) => set('url', e.target.value)}
+              placeholder="https://www.google.com/maps/search/?api=1&query={query}"
             />
           </Field>
 

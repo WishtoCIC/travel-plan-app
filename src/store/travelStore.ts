@@ -12,6 +12,12 @@ const BE_GRAND_RESORT_LOCATION = {
   lng: 123.76461902802014,
 } as const;
 
+const DEFAULT_QUICK_LINKS = [
+  { id: 'quick1', label: '🗺️ 구글 지도', url: 'https://www.google.com/maps/search/?api=1&query={query}' },
+  { id: 'quick2', label: '🎫 Klook', url: 'https://www.klook.com/ko/search/?q={query}' },
+  { id: 'quick3', label: '⭐ 트립어드바이저', url: 'https://www.tripadvisor.co.kr/Search?q={query}' },
+] as const;
+
 function normalizeTripLocations(trip: Trip): Trip {
   return {
     ...trip,
@@ -24,6 +30,7 @@ function normalizeTripLocations(trip: Trip): Trip {
         ? { ...location, ...BE_GRAND_RESORT_LOCATION }
         : location;
     }),
+    quickLinks: trip.quickLinks ?? [...DEFAULT_QUICK_LINKS],
   };
 }
 
@@ -221,7 +228,7 @@ export const useTravelStore = create<TravelStore>()(
     }),
     {
       name: 'travel-app-store',
-      version: 1,
+      version: 2,
       migrate: (persistedState) => {
         const state = persistedState as Partial<TravelStore> | undefined;
         if (!state?.trips) return persistedState;

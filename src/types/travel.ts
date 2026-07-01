@@ -65,6 +65,12 @@ export interface TravelLocation {
   notes?: string;
 }
 
+export interface QuickSearchLink {
+  id: string;
+  label: string;
+  url: string;
+}
+
 export interface Trip {
   id: string;
   title: string;
@@ -81,6 +87,7 @@ export interface Trip {
   checklist: ChecklistItem[];
   bookings: BookingLink[];
   locations: TravelLocation[];
+  quickLinks?: QuickSearchLink[];
   createdAt: string;
   updatedAt: string;
   shareCode?: string;   // 클라우드 공유 코드 (예: "BOHOL26")

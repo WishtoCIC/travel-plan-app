@@ -145,4 +145,10 @@ export const sampleTrip: Trip = {
     { id: 'loc7', name: '세부 막탄공항(CEB)', address: 'Lapu-Lapu City, Cebu, Philippines', lat: 10.3075, lng: 123.9793, type: 'airport' },
     { id: 'loc8', name: '초콜릿힐', address: 'Carmen, Bohol, Philippines', lat: 9.8998, lng: 124.1699, type: 'attraction' },
   ],
+
+  quickLinks: [
+    { id: 'quick1', label: '🗺️ 구글 지도', url: 'https://www.google.com/maps/search/?api=1&query={query}' },
+    { id: 'quick2', label: '🎫 Klook', url: 'https://www.klook.com/ko/search/?q={query}' },
+    { id: 'quick3', label: '⭐ 트립어드바이저', url: 'https://www.tripadvisor.co.kr/Search?q={query}' },
+  ],
 };
