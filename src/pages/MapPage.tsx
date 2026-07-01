@@ -1,7 +1,10 @@
 import { useState } from 'react';
-import { Navigation, ExternalLink, Search } from 'lucide-react';
+import { Navigation, ExternalLink, Search, Plus, Edit2, Trash2, X } from 'lucide-react';
 import { useTravelStore } from '../store/travelStore';
+import { generateId } from '../utils/helpers';
 import type { TravelLocation } from '../types/travel';
+
+const LOCATION_TYPES: TravelLocation['type'][] = ['hotel', 'airport', 'attraction', 'restaurant', 'port', 'other'];
 
 const TYPE_EMOJI: Record<string, string> = {
   hotel: '🏨', airport: '✈️', attraction: '🏛️', restaurant: '🍽️', port: '⛴️', other: '📍',
@@ -25,10 +28,11 @@ const QUICK_LINKS = [
 ];
 
 export function MapPage() {
-  const { trips, activeTrip } = useTravelStore();
+  const { trips, activeTrip, updateTrip } = useTravelStore();
   const trip = trips.find((t) => t.id === activeTrip) ?? trips[0];
   const [selected, setSelected] = useState<TravelLocation | null>(null);
   const [search, setSearch] = useState('');
+  const [editingLocation, setEditingLocation] = useState<TravelLocation | null>(null);
 
   if (!trip) return (
     <div className="flex flex-col items-center justify-center min-h-screen text-gray-400">
@@ -51,6 +55,32 @@ export function MapPage() {
     window.open(`https://www.google.com/maps/search/?api=1&query=${q}`, '_blank');
   }
 
+  function addLocation() {
+    setEditingLocation({ id: generateId(), name: '', type: 'other' });
+  }
+
+  function saveLocation(location: TravelLocation) {
+    const normalizedLocation = {
+      ...location,
+      name: location.name.trim(),
+      address: location.address?.trim() || undefined,
+      notes: location.notes?.trim() || undefined,
+    };
+    const exists = trip.locations.some((loc) => loc.id === normalizedLocation.id);
+    const locations = exists
+      ? trip.locations.map((loc) => loc.id === normalizedLocation.id ? normalizedLocation : loc)
+      : [...trip.locations, normalizedLocation];
+
+    updateTrip(trip.id, { locations });
+    setSelected(normalizedLocation);
+    setEditingLocation(null);
+  }
+
+  function deleteLocation(id: string) {
+    updateTrip(trip.id, { locations: trip.locations.filter((loc) => loc.id !== id) });
+    if (selected?.id === id) setSelected(null);
+  }
+
   const mapSrc = selected?.lat && selected?.lng
     ? `https://maps.google.com/maps?q=${selected.lat},${selected.lng}&z=14&output=embed`
     : trip.locations[0]?.lat && trip.locations[0]?.lng
@@ -61,8 +91,15 @@ export function MapPage() {
     <div className="app-screen">
       {/* Header */}
       <div className="app-header">
-        <h1 className="app-header-title">지도 & 장소</h1>
-        <p className="app-header-subtitle">{trip.title} · {trip.locations.length}곳</p>
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h1 className="app-header-title">지도 & 장소</h1>
+            <p className="app-header-subtitle">{trip.title} · {trip.locations.length}곳</p>
+          </div>
+          <button onClick={addLocation} className="primary-button px-3 py-2">
+            <Plus size={15} /> 장소 추가
+          </button>
+        </div>
       </div>
 
       {/* Search bar */}
@@ -138,8 +175,28 @@ export function MapPage() {
             >
               <Navigation size={15} />
             </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); setEditingLocation(loc); }}
+              className="flex-shrink-0 rounded-xl bg-white p-2 text-slate-300 active:text-sky-500"
+              title={`${loc.name} 수정`}
+            >
+              <Edit2 size={15} />
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); deleteLocation(loc.id); }}
+              className="flex-shrink-0 rounded-xl bg-white p-2 text-slate-300 active:text-red-500"
+              title={`${loc.name} 삭제`}
+            >
+              <Trash2 size={15} />
+            </button>
           </div>
         ))}
+        {filtered.length === 0 && (
+          <div className="py-10 text-center">
+            <div className="mb-2 text-4xl">📍</div>
+            <p className="text-sm text-slate-400">검색 결과가 없어요. 새 장소를 추가해보세요.</p>
+          </div>
+        )}
       </div>
 
       {/* Quick links */}
@@ -160,6 +217,141 @@ export function MapPage() {
           ))}
         </div>
       </div>
+
+      {editingLocation && (
+        <LocationModal
+          location={editingLocation}
+          onSave={saveLocation}
+          onClose={() => setEditingLocation(null)}
+        />
+      )}
     </div>
   );
+}
+
+function LocationModal({ location, onSave, onClose }: {
+  location: TravelLocation;
+  onSave: (location: TravelLocation) => void;
+  onClose: () => void;
+}) {
+  const [form, setForm] = useState({
+    ...location,
+    latText: location.lat?.toString() ?? '',
+    lngText: location.lng?.toString() ?? '',
+  });
+  const isNew = !location.name;
+
+  function set<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function handleSave() {
+    const lat = form.latText.trim() ? Number(form.latText) : undefined;
+    const lng = form.lngText.trim() ? Number(form.lngText) : undefined;
+    if (!form.name.trim()) return;
+    if ((lat !== undefined && Number.isNaN(lat)) || (lng !== undefined && Number.isNaN(lng))) return;
+
+    onSave({
+      id: form.id,
+      name: form.name,
+      address: form.address,
+      lat,
+      lng,
+      type: form.type,
+      notes: form.notes,
+    });
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end bg-slate-950/50">
+      <div className="max-h-[90vh] w-full overflow-y-auto rounded-t-2xl bg-white p-5 pb-sheet shadow-2xl">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-base font-black text-slate-950">장소 {isNew ? '추가' : '수정'}</h2>
+          <button onClick={onClose} className="rounded-xl p-2 text-slate-400">
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          <Field label="장소명">
+            <input
+              className="field-input"
+              value={form.name}
+              onChange={(e) => set('name', e.target.value)}
+              placeholder="예: BE Grand Resort Bohol"
+              autoFocus
+            />
+          </Field>
+
+          <Field label="종류">
+            <div className="grid grid-cols-3 gap-2">
+              {LOCATION_TYPES.map((type) => (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => set('type', type)}
+                  className={`rounded-xl border px-2 py-2.5 text-xs font-bold transition-colors ${
+                    form.type === type
+                      ? TYPE_COLOR[type]
+                      : 'border-slate-200 bg-white text-slate-500'
+                  }`}
+                >
+                  {TYPE_EMOJI[type]} {TYPE_LABEL[type]}
+                </button>
+              ))}
+            </div>
+          </Field>
+
+          <Field label="주소">
+            <input
+              className="field-input"
+              value={form.address ?? ''}
+              onChange={(e) => set('address', e.target.value)}
+              placeholder="주소 또는 구글맵 검색어"
+            />
+          </Field>
+
+          <div className="grid grid-cols-2 gap-2">
+            <Field label="위도">
+              <input
+                className="field-input"
+                inputMode="decimal"
+                value={form.latText}
+                onChange={(e) => set('latText', e.target.value)}
+                placeholder="9.548933"
+              />
+            </Field>
+            <Field label="경도">
+              <input
+                className="field-input"
+                inputMode="decimal"
+                value={form.lngText}
+                onChange={(e) => set('lngText', e.target.value)}
+                placeholder="123.764619"
+              />
+            </Field>
+          </div>
+
+          <Field label="메모">
+            <textarea
+              className="field-input"
+              rows={2}
+              value={form.notes ?? ''}
+              onChange={(e) => set('notes', e.target.value)}
+              placeholder="체크인, 이동 팁 등"
+            />
+          </Field>
+
+          <div className="flex gap-2 pt-1">
+            <button onClick={onClose} className="secondary-button flex-1">취소</button>
+            <button onClick={handleSave} className="primary-button flex-1">저장</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return <div><label className="mb-1.5 block text-xs font-bold text-slate-500">{label}</label>{children}</div>;
 }
