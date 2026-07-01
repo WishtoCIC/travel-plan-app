@@ -8,8 +8,8 @@ import { isSupabaseReady } from '../lib/supabase';
 const BE_GRAND_RESORT_LOCATION = {
   name: 'BE Grand Resort Bohol',
   address: 'BE Grand Drive, Brgy. Danao, Panglao Island, Bohol, 6340, Philippines',
-  lat: 9.5469925,
-  lng: 123.7657992,
+  lat: 9.548933968595241,
+  lng: 123.76461902802014,
 } as const;
 
 function normalizeTripLocations(trip: Trip): Trip {
