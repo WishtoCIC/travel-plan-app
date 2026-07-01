@@ -5,6 +5,28 @@ import { sampleTrip } from './sampleData';
 import { pushTrip, fetchTrip, generateShareCode } from '../lib/cloudSync';
 import { isSupabaseReady } from '../lib/supabase';
 
+const BE_GRAND_RESORT_LOCATION = {
+  name: 'BE Grand Resort Bohol',
+  address: 'BE Grand Drive, Brgy. Danao, Panglao Island, Bohol, 6340, Philippines',
+  lat: 9.5469925,
+  lng: 123.7657992,
+} as const;
+
+function normalizeTripLocations(trip: Trip): Trip {
+  return {
+    ...trip,
+    locations: trip.locations.map((location) => {
+      const isBeGrandResort =
+        location.id === 'loc3' ||
+        location.name.toLowerCase().includes('be grand resort');
+
+      return isBeGrandResort
+        ? { ...location, ...BE_GRAND_RESORT_LOCATION }
+        : location;
+    }),
+  };
+}
+
 interface TravelStore {
   trips: Trip[];
   activeTrip: string | null;
@@ -36,7 +58,7 @@ interface TravelStore {
 export const useTravelStore = create<TravelStore>()(
   persist(
     (set, get) => ({
-      trips: [sampleTrip],
+      trips: [normalizeTripLocations(sampleTrip)],
       activeTrip: sampleTrip.id,
       syncStatus: 'idle',
       exchangeRates: [
@@ -118,14 +140,15 @@ export const useTravelStore = create<TravelStore>()(
         try {
           const trip = await fetchTrip(code.toUpperCase());
           if (!trip) { set({ syncStatus: 'idle' }); return 'not_found'; }
+          const normalizedTrip = normalizeTripLocations(trip);
           // 이미 있으면 업데이트, 없으면 추가
           set((s) => {
             const exists = s.trips.find((t) => t.shareCode === code.toUpperCase());
             return {
               trips: exists
-                ? s.trips.map((t) => t.shareCode === code.toUpperCase() ? trip : t)
-                : [...s.trips, trip],
-              activeTrip: trip.id,
+                ? s.trips.map((t) => t.shareCode === code.toUpperCase() ? normalizedTrip : t)
+                : [...s.trips, normalizedTrip],
+              activeTrip: normalizedTrip.id,
               syncStatus: 'synced',
             };
           });
@@ -147,7 +170,7 @@ export const useTravelStore = create<TravelStore>()(
                     expenses: sampleTrip.expenses,
                     checklist: sampleTrip.checklist,
                     bookings: sampleTrip.bookings,
-                    locations: sampleTrip.locations,
+                    locations: normalizeTripLocations(sampleTrip).locations,
                     updatedAt: new Date().toISOString(),
                   }
                 : t
@@ -160,7 +183,7 @@ export const useTravelStore = create<TravelStore>()(
         } else {
           // 여행 자체가 없으면 샘플 여행을 새로 추가
           const now = new Date().toISOString();
-          const restored: Trip = { ...sampleTrip, createdAt: now, updatedAt: now };
+          const restored: Trip = normalizeTripLocations({ ...sampleTrip, createdAt: now, updatedAt: now });
           set((s) => ({
             trips: [...s.trips.filter((t) => t.id !== sampleTrip.id), restored],
             activeTrip: restored.id,
@@ -169,8 +192,9 @@ export const useTravelStore = create<TravelStore>()(
       },
 
       applyRemoteUpdate: (trip) => {
+        const normalizedTrip = normalizeTripLocations(trip);
         set((s) => ({
-          trips: s.trips.map((t) => t.id === trip.id ? trip : t),
+          trips: s.trips.map((t) => t.id === normalizedTrip.id ? normalizedTrip : t),
           syncStatus: 'synced',
         }));
       },
@@ -195,6 +219,17 @@ export const useTravelStore = create<TravelStore>()(
         return amount;
       },
     }),
-    { name: 'travel-app-store' }
+    {
+      name: 'travel-app-store',
+      version: 1,
+      migrate: (persistedState) => {
+        const state = persistedState as Partial<TravelStore> | undefined;
+        if (!state?.trips) return persistedState;
+        return {
+          ...state,
+          trips: state.trips.map(normalizeTripLocations),
+        };
+      },
+    }
   )
 );

@@ -138,7 +138,7 @@ export const sampleTrip: Trip = {
   locations: [
     { id: 'loc1', name: '부산 김해공항', address: '부산광역시 강서구 공항진입로 108', lat: 35.1795, lng: 128.9381, type: 'airport' },
     { id: 'loc2', name: '보홀 팡라오공항(TAG)', address: 'Panglao Island, Bohol, Philippines', lat: 9.5688, lng: 123.7754, type: 'airport' },
-    { id: 'loc3', name: 'Be Grand Resort Bohol', address: 'Alona Beach, Panglao, Bohol, Philippines', lat: 9.5513, lng: 123.7436, type: 'hotel' },
+    { id: 'loc3', name: 'BE Grand Resort Bohol', address: 'BE Grand Drive, Brgy. Danao, Panglao Island, Bohol, 6340, Philippines', lat: 9.5469925, lng: 123.7657992, type: 'hotel' },
     { id: 'loc4', name: '탁빌라란 항구', address: 'Tagbilaran City, Bohol, Philippines', lat: 9.6519, lng: 123.8544, type: 'port' },
     { id: 'loc5', name: '세부 Pier 1', address: 'Pier 1, Cebu City, Philippines', lat: 10.2931, lng: 123.9023, type: 'port' },
     { id: 'loc6', name: 'Jpark Island Resort & Waterpark Mactan', address: 'M.L. Quezon National Highway, Maribago, Lapu-Lapu City, Cebu', lat: 10.3127, lng: 124.0052, type: 'hotel' },
