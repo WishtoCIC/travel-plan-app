@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Plus, Edit2, Trash2, ExternalLink, Clock, MapPin, ChevronDown, ChevronUp, X, Sun } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { Plus, Edit2, Trash2, ExternalLink, Clock, MapPin, ChevronDown, ChevronUp, X, Sun, GripVertical } from 'lucide-react';
 import { useTravelStore } from '../store/travelStore';
 import { formatDate, generateId } from '../utils/helpers';
 import type { DayItinerary, ItineraryItem } from '../types/travel';
@@ -16,6 +16,10 @@ export function ItineraryPage() {
   const trip = trips.find((t) => t.id === activeTrip) ?? trips[0];
   const [openDays, setOpenDays] = useState<Set<string>>(new Set([trip?.itinerary[0]?.id ?? '']));
   const [editingItem, setEditingItem] = useState<{ dayId: string; item: ItineraryItem } | null>(null);
+  const [draggingItem, setDraggingItem] = useState<{ dayId: string; itemId: string } | null>(null);
+  const dragOverRef = useRef<string | null>(null);
+  const tripRef = useRef(trip);
+  tripRef.current = trip;
 
   if (!trip) return (
     <div className="flex flex-col items-center justify-center min-h-screen text-gray-400">
@@ -78,6 +82,55 @@ export function ItineraryPage() {
     saveItem(dayId, { ...item, status: next });
   }
 
+  function moveItem(dayId: string, itemId: string, targetItemId: string) {
+    if (itemId === targetItemId) return;
+
+    const currentTrip = tripRef.current;
+    if (!currentTrip) return;
+
+    const itinerary = currentTrip.itinerary.map((day) => {
+      if (day.id !== dayId) return day;
+
+      const fromIndex = day.items.findIndex((item) => item.id === itemId);
+      const toIndex = day.items.findIndex((item) => item.id === targetItemId);
+      if (fromIndex < 0 || toIndex < 0 || fromIndex === toIndex) return day;
+
+      const items = [...day.items];
+      const [moved] = items.splice(fromIndex, 1);
+      items.splice(toIndex, 0, moved);
+      return { ...day, items };
+    });
+
+    updateTrip(currentTrip.id, { itinerary });
+  }
+
+  function startItemDrag(dayId: string, itemId: string, e: React.PointerEvent<HTMLButtonElement>) {
+    e.preventDefault();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    setDraggingItem({ dayId, itemId });
+    dragOverRef.current = itemId;
+  }
+
+  function moveItemDrag(e: React.PointerEvent<HTMLButtonElement>) {
+    if (!draggingItem) return;
+
+    const target = document
+      .elementFromPoint(e.clientX, e.clientY)
+      ?.closest<HTMLElement>('[data-itinerary-item-id][data-itinerary-day-id]');
+
+    const targetItemId = target?.dataset.itineraryItemId;
+    const targetDayId = target?.dataset.itineraryDayId;
+    if (!targetItemId || targetDayId !== draggingItem.dayId || dragOverRef.current === targetItemId) return;
+
+    dragOverRef.current = targetItemId;
+    moveItem(draggingItem.dayId, draggingItem.itemId, targetItemId);
+  }
+
+  function endItemDrag() {
+    setDraggingItem(null);
+    dragOverRef.current = null;
+  }
+
   return (
     <div className="app-screen">
       {/* Header */}
@@ -136,7 +189,25 @@ export function ItineraryPage() {
               {isOpen && (
                 <div className="space-y-1 border-t border-slate-100 px-4 py-2">
                   {day.items.map((item) => (
-                    <div key={item.id} className="flex items-start gap-3 border-b border-slate-100 py-2.5 last:border-0">
+                    <div
+                      key={item.id}
+                      data-itinerary-day-id={day.id}
+                      data-itinerary-item-id={item.id}
+                      className={`flex items-start gap-2 border-b border-slate-100 py-2.5 transition-colors last:border-0 ${
+                        draggingItem?.itemId === item.id ? 'bg-sky-50/70' : ''
+                      }`}
+                    >
+                      <button
+                        type="button"
+                        onPointerDown={(e) => startItemDrag(day.id, item.id, e)}
+                        onPointerMove={moveItemDrag}
+                        onPointerUp={endItemDrag}
+                        onPointerCancel={endItemDrag}
+                        className="touch-action-none mt-0.5 flex h-7 w-6 flex-shrink-0 items-center justify-center rounded-lg text-slate-300 active:bg-slate-100 active:text-slate-500"
+                        title="순서 변경"
+                      >
+                        <GripVertical size={15} />
+                      </button>
                       <button
                         onClick={() => cycleStatus(day.id, item)}
                         className={`text-xs px-2 py-1 rounded-full font-medium flex-shrink-0 mt-0.5 ${STATUS_STYLE[item.status]}`}
