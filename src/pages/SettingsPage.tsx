@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Save, Download, Upload, Trash2, ChevronRight, Info, Cloud, CloudOff, Link, RotateCcw } from 'lucide-react';
+import { Save, Download, Upload, Trash2, ChevronRight, Info, Cloud, CloudOff, Link, RotateCcw, ShieldCheck, UserRound } from 'lucide-react';
 import { useTravelStore } from '../store/travelStore';
 import { exportTripAsFile, importTripFromFile, shareText } from '../utils/share';
 import { isSupabaseReady } from '../lib/supabase';
@@ -8,8 +8,10 @@ import type { Currency } from '../types/travel';
 const CURRENCIES: Currency[] = ['KRW', 'PHP', 'USD', 'JPY', 'THB', 'VND'];
 
 export function SettingsPage() {
-  const { trips, activeTrip, updateTrip, deleteTrip, setActiveTrip, addTrip, enableCloudSync, joinByCode, syncStatus, restoreFromSample } = useTravelStore();
+  const { trips, activeTrip, updateTrip, deleteTrip, setActiveTrip, addTrip, enableCloudSync, resetShareAccess, joinByCode, syncStatus, restoreFromSample, getTripRole } = useTravelStore();
   const trip = trips.find((t) => t.id === activeTrip) ?? trips[0];
+  const shareRole = getTripRole(trip);
+  const isAdmin = shareRole === 'admin';
   const [saved, setSaved] = useState(false);
   const [shareMsg, setShareMsg] = useState('');
   const [showShareInfo, setShowShareInfo] = useState(false);
@@ -94,6 +96,11 @@ export function SettingsPage() {
 
   async function handleCopyShareLink() {
     if (!trip?.shareCode) return;
+    if (!isAdmin) {
+      setShareMsg('참여자 권한에서는 링크를 다시 공유할 수 없어요.');
+      setTimeout(() => setShareMsg(''), 4000);
+      return;
+    }
     const url = `${window.location.origin}/?code=${trip.shareCode}`;
     const result = await shareText(trip.title, `${trip.title} 여행 계획 공유`, url);
     setShareMsg(result === 'shared' ? '✅ 공유됐어요!' : '📋 링크 복사 완료! 카카오톡에 붙여넣기하세요.');
@@ -108,6 +115,20 @@ export function SettingsPage() {
     else if (result === 'not_found') setJoiningMsg('❌ 코드를 찾을 수 없어요.');
     else setJoiningMsg('❌ Supabase 설정이 필요해요.');
     setTimeout(() => setJoiningMsg(''), 4000);
+  }
+
+  async function handleResetShareAccess() {
+    if (!trip || !isAdmin) return;
+    const ok = confirm('기존 공유 코드와 링크 접속을 모두 막고 새 공유 코드를 발급할까요?\n\n이미 받은 사람에게 다시 공유하려면 새 링크를 보내야 합니다.');
+    if (!ok) return;
+
+    const newCode = await resetShareAccess(trip.id);
+    if (newCode) {
+      setShareMsg(`공유 접속을 초기화했어요. 새 공유 코드: ${newCode}`);
+    } else {
+      setShareMsg('공유 접속 초기화에 실패했어요. 잠시 후 다시 시도해주세요.');
+    }
+    setTimeout(() => setShareMsg(''), 5000);
   }
 
 
@@ -158,17 +179,37 @@ export function SettingsPage() {
             <div className="p-4 space-y-3">
               <div className="flex items-center justify-between rounded-xl bg-sky-50 px-4 py-3">
                 <div>
-                  <p className="mb-0.5 text-xs font-bold text-sky-500">공유 코드</p>
+                  <div className="mb-1 flex items-center gap-1.5">
+                    <p className="text-xs font-bold text-sky-500">공유 코드</p>
+                    <ShareRoleBadge role={shareRole} />
+                  </div>
                   <p className="text-2xl font-black tracking-widest text-sky-700">{trip.shareCode}</p>
                 </div>
-                <button onClick={handleCopyShareLink}
-                  className="flex items-center gap-1.5 rounded-xl bg-slate-950 px-3 py-2 text-sm font-bold text-white">
-                  <Link size={14} /> 링크 공유
-                </button>
+                {isAdmin ? (
+                  <button onClick={handleCopyShareLink}
+                    className="flex items-center gap-1.5 rounded-xl bg-slate-950 px-3 py-2 text-sm font-bold text-white">
+                    <Link size={14} /> 링크 공유
+                  </button>
+                ) : (
+                  <button disabled
+                    className="flex items-center gap-1.5 rounded-xl bg-white/70 px-3 py-2 text-sm font-bold text-slate-400">
+                    <UserRound size={14} /> 참여자
+                  </button>
+                )}
               </div>
               <p className="text-center text-xs text-slate-400">
-                가족이 이 코드 또는 링크로 접속하면 실시간으로 공유됩니다
+                {isAdmin
+                  ? '관리자만 이 코드 또는 링크를 처음 공유할 수 있습니다'
+                  : '참여자 권한으로 연결되어 관리자의 공유 링크만 사용할 수 있습니다'}
               </p>
+              {isAdmin && (
+                <button
+                  onClick={handleResetShareAccess}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-100 bg-white px-3 py-2.5 text-sm font-bold text-red-500 active:bg-red-50"
+                >
+                  <RotateCcw size={14} /> 공유 접속 초기화
+                </button>
+              )}
             </div>
           ) : (
             <div className="p-4 space-y-3">
@@ -358,4 +399,17 @@ function SyncBadge({ status }: { status: string }) {
   };
   const { label, cls } = map[status] ?? map.idle;
   return <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${cls}`}>{label}</span>;
+}
+
+function ShareRoleBadge({ role }: { role: 'admin' | 'participant' | null }) {
+  if (!role) return null;
+  const isAdmin = role === 'admin';
+  return (
+    <span className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-black ${
+      isAdmin ? 'bg-sky-100 text-sky-700' : 'bg-slate-100 text-slate-500'
+    }`}>
+      {isAdmin ? <ShieldCheck size={10} /> : <UserRound size={10} />}
+      {isAdmin ? '관리자' : '참여자'}
+    </span>
+  );
 }

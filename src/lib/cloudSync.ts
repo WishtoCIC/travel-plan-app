@@ -28,6 +28,16 @@ export async function fetchTrip(code: string): Promise<Trip | null> {
   return data.data as Trip;
 }
 
+/** 기존 공유 코드의 클라우드 데이터를 삭제해 이전 링크 접속을 막음 */
+export async function deleteTripByCode(code: string): Promise<void> {
+  if (!isSupabaseReady || !supabase) return;
+  const { error } = await supabase
+    .from('trips')
+    .delete()
+    .eq('code', code.toUpperCase());
+  if (error) throw error;
+}
+
 /** 실시간 변경 구독. 반환값(채널)을 저장했다가 언마운트 시 unsubscribe 호출 */
 export function subscribeTrip(
   code: string,

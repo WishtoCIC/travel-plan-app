@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
-import { Home, List, DollarSign, CheckSquare, Map, RefreshCw } from 'lucide-react';
+import { Home, List, DollarSign, CheckSquare, Map, RefreshCw, ShieldCheck } from 'lucide-react';
 import { useTravelStore } from '../store/travelStore';
 
 const navItems = [
@@ -14,8 +14,9 @@ const navItems = [
 const PULL_THRESHOLD = 72;
 
 export function Layout() {
-  const { trips, activeTrip, joinByCode } = useTravelStore();
+  const { trips, activeTrip, joinByCode, getTripRole } = useTravelStore();
   const trip = trips.find((t) => t.id === activeTrip) ?? trips[0];
+  const role = getTripRole(trip);
 
   const mainRef = useRef<HTMLElement>(null);
   const startYRef = useRef(0);
@@ -89,6 +90,13 @@ export function Layout() {
       <div className="comparison-badge" aria-label="UX 리뉴얼 Preview 배포본">
         UX 리뉴얼 Preview
       </div>
+
+      {role === 'admin' && (
+        <div className="admin-role-badge" aria-label="현재 여행 관리자 권한">
+          <ShieldCheck size={12} />
+          관리자
+        </div>
+      )}
 
       {/* Bottom Navigation — z-40 so modals (z-50) render above it */}
       <nav className="fixed inset-x-0 bottom-0 z-40 mx-auto max-w-lg border-t border-slate-200/80 bg-white/90 shadow-[0_-10px_30px_rgba(15,23,42,0.08)] backdrop-blur-xl safe-bottom">

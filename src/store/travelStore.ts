@@ -2,8 +2,10 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Trip, ExchangeRate, Currency } from '../types/travel';
 import { sampleTrip } from './sampleData';
-import { pushTrip, fetchTrip, generateShareCode } from '../lib/cloudSync';
+import { pushTrip, fetchTrip, generateShareCode, deleteTripByCode } from '../lib/cloudSync';
 import { isSupabaseReady } from '../lib/supabase';
+
+export type ShareRole = 'admin' | 'participant';
 
 const BE_GRAND_RESORT_LOCATION = {
   name: 'BE Grand Resort Bohol',
@@ -39,6 +41,7 @@ interface TravelStore {
   activeTrip: string | null;
   exchangeRates: ExchangeRate[];
   syncStatus: 'idle' | 'syncing' | 'synced' | 'error' | 'offline';
+  shareRoles: Record<string, ShareRole>;
 
   addTrip: (trip: Omit<Trip, 'id' | 'createdAt' | 'updatedAt'>) => string;
   updateTrip: (id: string, updates: Partial<Trip>) => void;
@@ -53,8 +56,12 @@ interface TravelStore {
   enableCloudSync: (tripId: string) => Promise<string | null>;
   /** 변경사항을 클라우드에 저장 (cloud-enabled 여행만) */
   syncToCloud: (tripId: string) => Promise<void>;
+  /** 관리자 전용: 공유 코드를 재발급하고 기존 코드 접속을 막음 */
+  resetShareAccess: (tripId: string) => Promise<string | null>;
   /** 공유 코드로 클라우드에서 여행 불러오기 */
   joinByCode: (code: string) => Promise<'ok' | 'not_found' | 'no_supabase'>;
+  /** 현재 기기 기준 공유 역할 확인 */
+  getTripRole: (trip: Trip | undefined) => ShareRole | null;
   /** 외부에서 받은 실시간 업데이트를 로컬에 반영 */
   applyRemoteUpdate: (trip: Trip) => void;
 
@@ -68,6 +75,7 @@ export const useTravelStore = create<TravelStore>()(
       trips: [normalizeTripLocations(sampleTrip)],
       activeTrip: sampleTrip.id,
       syncStatus: 'idle',
+      shareRoles: {},
       exchangeRates: [
         { from: 'KRW', to: 'PHP', rate: 0.042, updatedAt: new Date().toISOString() },
         { from: 'PHP', to: 'KRW', rate: 23.8, updatedAt: new Date().toISOString() },
@@ -120,6 +128,7 @@ export const useTravelStore = create<TravelStore>()(
           await pushTrip(updatedTrip);
           set((s) => ({
             trips: s.trips.map((t) => t.id === tripId ? updatedTrip : t),
+            shareRoles: { ...s.shareRoles, [code]: 'admin' },
             syncStatus: 'synced',
           }));
           return code;
@@ -141,6 +150,44 @@ export const useTravelStore = create<TravelStore>()(
         }
       },
 
+      resetShareAccess: async (tripId) => {
+        if (!isSupabaseReady) return null;
+        const trip = get().trips.find((t) => t.id === tripId);
+        if (!trip || get().getTripRole(trip) !== 'admin') return null;
+
+        const oldCode = trip.shareCode;
+        let newCode = generateShareCode();
+        while (newCode === oldCode) {
+          newCode = generateShareCode();
+        }
+
+        const updatedTrip: Trip = {
+          ...trip,
+          shareCode: newCode,
+          cloudEnabled: true,
+          updatedAt: new Date().toISOString(),
+        };
+
+        set({ syncStatus: 'syncing' });
+        try {
+          await pushTrip(updatedTrip);
+          if (oldCode) await deleteTripByCode(oldCode);
+          set((s) => {
+            const remainingRoles = { ...s.shareRoles };
+            if (oldCode) delete remainingRoles[oldCode];
+            return {
+              trips: s.trips.map((t) => t.id === tripId ? updatedTrip : t),
+              shareRoles: { ...remainingRoles, [newCode]: 'admin' },
+              syncStatus: 'synced',
+            };
+          });
+          return newCode;
+        } catch {
+          set({ syncStatus: 'error' });
+          return null;
+        }
+      },
+
       joinByCode: async (code) => {
         if (!isSupabaseReady) return 'no_supabase';
         set({ syncStatus: 'syncing' });
@@ -151,11 +198,15 @@ export const useTravelStore = create<TravelStore>()(
           // 이미 있으면 업데이트, 없으면 추가
           set((s) => {
             const exists = s.trips.find((t) => t.shareCode === code.toUpperCase());
+            const shareRoles: Record<string, ShareRole> = s.shareRoles[code.toUpperCase()]
+              ? s.shareRoles
+              : { ...s.shareRoles, [code.toUpperCase()]: 'participant' };
             return {
               trips: exists
                 ? s.trips.map((t) => t.shareCode === code.toUpperCase() ? normalizedTrip : t)
                 : [...s.trips, normalizedTrip],
               activeTrip: normalizedTrip.id,
+              shareRoles,
               syncStatus: 'synced',
             };
           });
@@ -164,6 +215,11 @@ export const useTravelStore = create<TravelStore>()(
           set({ syncStatus: 'error' });
           return 'not_found';
         }
+      },
+
+      getTripRole: (trip) => {
+        if (!trip?.cloudEnabled || !trip.shareCode) return null;
+        return get().shareRoles[trip.shareCode] ?? 'admin';
       },
 
       restoreFromSample: async (tripId) => {
@@ -228,13 +284,18 @@ export const useTravelStore = create<TravelStore>()(
     }),
     {
       name: 'travel-app-store',
-      version: 2,
+      version: 3,
       migrate: (persistedState) => {
         const state = persistedState as Partial<TravelStore> | undefined;
         if (!state?.trips) return persistedState;
+        const shareRoles = state.shareRoles ?? state.trips.reduce<Record<string, ShareRole>>((acc, trip) => {
+          if (trip.cloudEnabled && trip.shareCode) acc[trip.shareCode] = 'admin';
+          return acc;
+        }, {});
         return {
           ...state,
           trips: state.trips.map(normalizeTripLocations),
+          shareRoles,
         };
       },
     }

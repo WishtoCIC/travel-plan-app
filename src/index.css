@@ -78,6 +78,9 @@
   .comparison-badge {
     @apply pointer-events-none fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] right-[max(1rem,calc((100vw-32rem)/2+1rem))] z-30 rounded-full border border-amber-200 bg-amber-50/95 px-3 py-1 text-[10px] font-black uppercase tracking-[0.08em] text-amber-700 shadow-sm shadow-amber-100 backdrop-blur;
   }
+  .admin-role-badge {
+    @apply pointer-events-none fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] left-[max(1rem,calc((100vw-32rem)/2+1rem))] z-30 inline-flex items-center gap-1 rounded-full border border-sky-200 bg-sky-50/95 px-3 py-1 text-[10px] font-black text-sky-700 shadow-sm shadow-sky-100 backdrop-blur;
+  }
 }
 
 @layer utilities {
