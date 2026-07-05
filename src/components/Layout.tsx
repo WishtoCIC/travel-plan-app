@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { Home, List, DollarSign, CheckSquare, Map, RefreshCw, ShieldCheck } from 'lucide-react';
 import { useTravelStore } from '../store/travelStore';
+import { formatAppVersion } from '../utils/version';
 
 const navItems = [
   { to: '/', label: '홈', icon: Home, end: true },
@@ -12,6 +13,7 @@ const navItems = [
 ];
 
 const PULL_THRESHOLD = 72;
+const appVersionLabel = formatAppVersion(__APP_VERSION__);
 
 export function Layout() {
   const { trips, activeTrip, joinByCode, getTripRole } = useTravelStore();
@@ -87,8 +89,8 @@ export function Layout() {
         <Outlet />
       </main>
 
-      <div className="comparison-badge" aria-label="UX 리뉴얼 Preview 배포본">
-        UX 리뉴얼 Preview
+      <div className="comparison-badge" aria-label={`앱 버전 ${appVersionLabel}`}>
+        {appVersionLabel}
       </div>
 
       {role === 'admin' && (
