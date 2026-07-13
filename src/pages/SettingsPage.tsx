@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Save, Download, Upload, Trash2, ChevronRight, Info, Cloud, CloudOff, Link, RotateCcw, ShieldCheck, UserRound } from 'lucide-react';
+import { Save, Download, Upload, Trash2, ChevronRight, Info, Cloud, CloudOff, Link, RotateCcw, ShieldCheck, UserRound, FolderOpen, ExternalLink } from 'lucide-react';
 import { useTravelStore } from '../store/travelStore';
 import { exportTripAsFile, importTripFromFile, shareText } from '../utils/share';
 import { isSupabaseReady } from '../lib/supabase';
@@ -28,6 +28,7 @@ export function SettingsPage() {
     budget: trip?.budget ?? ('' as number | string),
     travelers: trip?.travelers.join(', ') ?? '',
     coverEmoji: trip?.coverEmoji ?? '✈️',
+    driveFolderUrl: trip?.driveFolderUrl ?? '',
   });
 
   const set = (k: string, v: unknown) => setForm((f) => ({ ...f, [k]: v }));
@@ -58,6 +59,7 @@ export function SettingsPage() {
       travelers: form.travelers.split(',').map((s) => s.trim()).filter(Boolean),
       coverEmoji: form.coverEmoji,
       itinerary: updatedItinerary,
+      driveFolderUrl: form.driveFolderUrl.trim() || undefined,
     });
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
@@ -152,7 +154,7 @@ export function SettingsPage() {
               {trips.map((t) => (
                 <button key={t.id} onClick={() => {
                   setActiveTrip(t.id);
-                  setForm({ title: t.title, destination: t.destination, description: t.description ?? '', startDate: t.startDate, endDate: t.endDate, baseCurrency: t.baseCurrency, budget: t.budget ?? '', travelers: t.travelers.join(', '), coverEmoji: t.coverEmoji ?? '✈️' });
+                  setForm({ title: t.title, destination: t.destination, description: t.description ?? '', startDate: t.startDate, endDate: t.endDate, baseCurrency: t.baseCurrency, budget: t.budget ?? '', travelers: t.travelers.join(', '), coverEmoji: t.coverEmoji ?? '✈️', driveFolderUrl: t.driveFolderUrl ?? '' });
                 }}
                   className={`rounded-full border px-3 py-1.5 text-sm font-bold transition-colors ${t.id === activeTrip ? 'border-slate-950 bg-slate-950 text-white' : 'border-slate-200 bg-white text-slate-600'}`}>
                   {t.coverEmoji} {t.title}
@@ -161,6 +163,21 @@ export function SettingsPage() {
             </div>
           </div>
         )}
+
+        <div className="surface-card overflow-hidden">
+          <div className="flex items-center gap-2 border-b border-slate-100 px-4 py-3">
+            <FolderOpen size={15} className="text-blue-500" />
+            <p className="section-label">Google Drive 여행 폴더</p>
+          </div>
+          <div className="space-y-3 p-4">
+            <p className="text-xs leading-relaxed text-slate-500">Drive에서 여행 폴더를 만든 후 공유 링크를 붙여 넣으세요. 링크 권한은 특정 참여자 또는 ‘링크가 있는 사용자’로 설정해야 합니다.</p>
+            <input className="field-input" type="url" value={form.driveFolderUrl} onChange={(e) => set('driveFolderUrl', e.target.value)} placeholder="https://drive.google.com/drive/folders/..." />
+            <div className="flex gap-2">
+              <button onClick={save} className="primary-button flex-1 py-2.5"><Save size={15} /> 폴더 연결 저장</button>
+              {form.driveFolderUrl && <a href={form.driveFolderUrl} target="_blank" rel="noreferrer" className="secondary-button px-3 py-2.5" title="Drive 폴더 확인"><ExternalLink size={16} /></a>}
+            </div>
+          </div>
+        </div>
 
         {/* ── 실시간 클라우드 동기화 ── */}
         <div className="surface-card overflow-hidden">
@@ -324,7 +341,7 @@ export function SettingsPage() {
           onClick={() => {
             const id = addTrip({ title: '새 여행', destination: '', startDate: new Date().toISOString().split('T')[0], endDate: new Date().toISOString().split('T')[0], travelers: [], baseCurrency: 'KRW', itinerary: [], expenses: [], checklist: [], bookings: [], locations: [] });
             setActiveTrip(id);
-            setForm({ title: '새 여행', destination: '', description: '', startDate: '', endDate: '', baseCurrency: 'KRW', budget: '', travelers: '', coverEmoji: '✈️' });
+            setForm({ title: '새 여행', destination: '', description: '', startDate: '', endDate: '', baseCurrency: 'KRW', budget: '', travelers: '', coverEmoji: '✈️', driveFolderUrl: '' });
           }}
           className="secondary-button w-full py-3.5"
         >

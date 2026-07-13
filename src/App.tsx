@@ -7,6 +7,7 @@ import { BudgetPage } from './pages/BudgetPage';
 import { ChecklistPage } from './pages/ChecklistPage';
 import { MapPage } from './pages/MapPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { AlbumPage } from './pages/AlbumPage';
 import { useTravelStore } from './store/travelStore';
 import { getTripFromUrlHash } from './utils/share';
 import { useRealtimeSync } from './lib/useRealtimeSync';
@@ -48,6 +49,7 @@ function AppCore() {
         <Route path="budget" element={<BudgetPage />} />
         <Route path="checklist" element={<ChecklistPage />} />
         <Route path="map" element={<MapPage />} />
+        <Route path="album" element={<AlbumPage />} />
         <Route path="settings" element={<SettingsPage />} />
       </Route>
     </Routes>

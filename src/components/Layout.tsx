@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
-import { Home, List, DollarSign, CheckSquare, Map, RefreshCw, ShieldCheck } from 'lucide-react';
+import { Home, List, DollarSign, CheckSquare, Map, Images, RefreshCw, ShieldCheck } from 'lucide-react';
 import { useTravelStore } from '../store/travelStore';
 import { formatAppVersion } from '../utils/version';
 
@@ -10,6 +10,7 @@ const navItems = [
   { to: '/budget', label: '예산', icon: DollarSign },
   { to: '/checklist', label: '체크', icon: CheckSquare },
   { to: '/map', label: '지도', icon: Map },
+  { to: '/album', label: '앨범', icon: Images },
 ];
 
 const PULL_THRESHOLD = 72;

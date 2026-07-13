@@ -71,6 +71,19 @@ export interface QuickSearchLink {
   url: string;
 }
 
+export interface TravelMedia {
+  id: string;
+  name: string;
+  type: 'photo' | 'video';
+  mimeType: string;
+  size: number;
+  storagePath: string;
+  publicUrl: string;
+  capturedAt?: string;
+  caption?: string;
+  createdAt: string;
+}
+
 export interface Trip {
   id: string;
   title: string;
@@ -88,6 +101,8 @@ export interface Trip {
   bookings: BookingLink[];
   locations: TravelLocation[];
   quickLinks?: QuickSearchLink[];
+  media?: TravelMedia[];
+  driveFolderUrl?: string;
   createdAt: string;
   updatedAt: string;
   shareCode?: string;   // 클라우드 공유 코드 (예: "BOHOL26")
