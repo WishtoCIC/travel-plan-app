@@ -23,7 +23,7 @@ export function Dashboard() {
   async function handleRefresh() {
     if (!trip?.shareCode || refreshing) return;
     setRefreshing(true);
-    await joinByCode(trip.shareCode);
+    await joinByCode(trip.shareCode, { preserveRole: true });
     setRefreshing(false);
   }
 

@@ -6,6 +6,9 @@ import { pushTrip, fetchTrip, generateShareCode, deleteTripByCode } from '../lib
 import { isSupabaseReady } from '../lib/supabase';
 
 export type ShareRole = 'admin' | 'participant';
+interface JoinByCodeOptions {
+  preserveRole?: boolean;
+}
 
 const BE_GRAND_RESORT_LOCATION = {
   name: 'BE Grand Resort Bohol',
@@ -19,6 +22,10 @@ const DEFAULT_QUICK_LINKS = [
   { id: 'quick2', label: '🎫 Klook', url: 'https://www.klook.com/ko/search/?q={query}' },
   { id: 'quick3', label: '⭐ 트립어드바이저', url: 'https://www.tripadvisor.co.kr/Search?q={query}' },
 ] as const;
+
+function normalizeShareCode(code: string): string {
+  return code.trim().toUpperCase();
+}
 
 function normalizeTripLocations(trip: Trip): Trip {
   return {
@@ -59,7 +66,7 @@ interface TravelStore {
   /** 관리자 전용: 공유 코드를 재발급하고 기존 코드 접속을 막음 */
   resetShareAccess: (tripId: string) => Promise<string | null>;
   /** 공유 코드로 클라우드에서 여행 불러오기 */
-  joinByCode: (code: string) => Promise<'ok' | 'not_found' | 'no_supabase'>;
+  joinByCode: (code: string, options?: JoinByCodeOptions) => Promise<'ok' | 'not_found' | 'no_supabase'>;
   /** 현재 기기 기준 공유 역할 확인 */
   getTripRole: (trip: Trip | undefined) => ShareRole | null;
   /** 외부에서 받은 실시간 업데이트를 로컬에 반영 */
@@ -188,25 +195,26 @@ export const useTravelStore = create<TravelStore>()(
         }
       },
 
-      joinByCode: async (code) => {
+      joinByCode: async (code, options) => {
         if (!isSupabaseReady) return 'no_supabase';
+        const normalizedCode = normalizeShareCode(code);
         set({ syncStatus: 'syncing' });
         try {
-          const trip = await fetchTrip(code.toUpperCase());
+          const trip = await fetchTrip(normalizedCode);
           if (!trip) { set({ syncStatus: 'idle' }); return 'not_found'; }
           const normalizedTrip = normalizeTripLocations(trip);
-          // 이미 있으면 업데이트, 없으면 추가
           set((s) => {
-            const exists = s.trips.find((t) => t.shareCode === code.toUpperCase());
-            const shareRoles: Record<string, ShareRole> = s.shareRoles[code.toUpperCase()]
-              ? s.shareRoles
-              : { ...s.shareRoles, [code.toUpperCase()]: 'participant' };
+            const exists = s.trips.find((t) => t.shareCode === normalizedCode);
+            // 초대 입장은 참여자, 기존 여행 새로고침은 현재 기기의 역할을 유지한다.
+            const role: ShareRole = options?.preserveRole
+              ? (s.shareRoles[normalizedCode] ?? 'participant')
+              : 'participant';
             return {
               trips: exists
-                ? s.trips.map((t) => t.shareCode === code.toUpperCase() ? normalizedTrip : t)
+                ? s.trips.map((t) => t.shareCode === normalizedCode ? normalizedTrip : t)
                 : [...s.trips, normalizedTrip],
               activeTrip: normalizedTrip.id,
-              shareRoles,
+              shareRoles: { ...s.shareRoles, [normalizedCode]: role },
               syncStatus: 'synced',
             };
           });
@@ -219,7 +227,7 @@ export const useTravelStore = create<TravelStore>()(
 
       getTripRole: (trip) => {
         if (!trip?.cloudEnabled || !trip.shareCode) return null;
-        return get().shareRoles[trip.shareCode] ?? 'admin';
+        return get().shareRoles[normalizeShareCode(trip.shareCode)] ?? 'participant';
       },
 
       restoreFromSample: async (tripId) => {
@@ -284,12 +292,12 @@ export const useTravelStore = create<TravelStore>()(
     }),
     {
       name: 'travel-app-store',
-      version: 3,
+      version: 4,
       migrate: (persistedState) => {
         const state = persistedState as Partial<TravelStore> | undefined;
         if (!state?.trips) return persistedState;
-        const shareRoles = state.shareRoles ?? state.trips.reduce<Record<string, ShareRole>>((acc, trip) => {
-          if (trip.cloudEnabled && trip.shareCode) acc[trip.shareCode] = 'admin';
+        const shareRoles = Object.entries(state.shareRoles ?? {}).reduce<Record<string, ShareRole>>((acc, [code, role]) => {
+          acc[normalizeShareCode(code)] = role;
           return acc;
         }, {});
         return {

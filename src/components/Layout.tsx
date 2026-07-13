@@ -49,7 +49,7 @@ export function Layout() {
 
     if (triggered && trip?.shareCode && !refreshing) {
       setRefreshing(true);
-      await joinByCode(trip.shareCode);
+      await joinByCode(trip.shareCode, { preserveRole: true });
       setRefreshing(false);
     }
   }
