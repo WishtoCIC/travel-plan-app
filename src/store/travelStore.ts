@@ -27,6 +27,10 @@ function normalizeShareCode(code: string): string {
   return code.trim().toUpperCase();
 }
 
+function getNormalizedTripShareCode(trip: Trip): string | null {
+  return trip.shareCode ? normalizeShareCode(trip.shareCode) : null;
+}
+
 function normalizeTripLocations(trip: Trip): Trip {
   return {
     ...trip,
@@ -41,6 +45,41 @@ function normalizeTripLocations(trip: Trip): Trip {
     }),
     quickLinks: trip.quickLinks ?? [...DEFAULT_QUICK_LINKS],
   };
+}
+
+function isSameSharedTrip(candidate: Trip, incoming: Trip, shareCode: string | null): boolean {
+  const candidateCode = getNormalizedTripShareCode(candidate);
+  return candidate.id === incoming.id || (!!shareCode && candidateCode === shareCode);
+}
+
+function chooseTripVersion(current: Trip, incoming: Trip): Trip {
+  if (current.cloudEnabled && !incoming.cloudEnabled) return current;
+  return incoming;
+}
+
+function upsertSharedTrip(trips: Trip[], incoming: Trip, shareCode = getNormalizedTripShareCode(incoming)): Trip[] {
+  let inserted = false;
+  const next = trips.reduce<Trip[]>((acc, trip) => {
+    if (!isSameSharedTrip(trip, incoming, shareCode)) {
+      acc.push(trip);
+      return acc;
+    }
+
+    if (!inserted) {
+      acc.push(chooseTripVersion(trip, incoming));
+      inserted = true;
+    }
+    return acc;
+  }, []);
+
+  if (!inserted) next.push(incoming);
+  return next;
+}
+
+function normalizeTrips(trips: Trip[]): Trip[] {
+  return trips
+    .map(normalizeTripLocations)
+    .reduce<Trip[]>((acc, trip) => upsertSharedTrip(acc, trip), []);
 }
 
 interface TravelStore {
@@ -204,15 +243,12 @@ export const useTravelStore = create<TravelStore>()(
           if (!trip) { set({ syncStatus: 'idle' }); return 'not_found'; }
           const normalizedTrip = normalizeTripLocations(trip);
           set((s) => {
-            const exists = s.trips.find((t) => t.shareCode === normalizedCode);
             // 초대 입장은 참여자, 기존 여행 새로고침은 현재 기기의 역할을 유지한다.
             const role: ShareRole = options?.preserveRole
               ? (s.shareRoles[normalizedCode] ?? 'participant')
               : 'participant';
             return {
-              trips: exists
-                ? s.trips.map((t) => t.shareCode === normalizedCode ? normalizedTrip : t)
-                : [...s.trips, normalizedTrip],
+              trips: upsertSharedTrip(s.trips, normalizedTrip, normalizedCode),
               activeTrip: normalizedTrip.id,
               shareRoles: { ...s.shareRoles, [normalizedCode]: role },
               syncStatus: 'synced',
@@ -265,7 +301,7 @@ export const useTravelStore = create<TravelStore>()(
       applyRemoteUpdate: (trip) => {
         const normalizedTrip = normalizeTripLocations(trip);
         set((s) => ({
-          trips: s.trips.map((t) => t.id === normalizedTrip.id ? normalizedTrip : t),
+          trips: upsertSharedTrip(s.trips, normalizedTrip),
           syncStatus: 'synced',
         }));
       },
@@ -292,7 +328,7 @@ export const useTravelStore = create<TravelStore>()(
     }),
     {
       name: 'travel-app-store',
-      version: 4,
+      version: 5,
       migrate: (persistedState) => {
         const state = persistedState as Partial<TravelStore> | undefined;
         if (!state?.trips) return persistedState;
@@ -302,7 +338,7 @@ export const useTravelStore = create<TravelStore>()(
         }, {});
         return {
           ...state,
-          trips: state.trips.map(normalizeTripLocations),
+          trips: normalizeTrips(state.trips),
           shareRoles,
         };
       },
