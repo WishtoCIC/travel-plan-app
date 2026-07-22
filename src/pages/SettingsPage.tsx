@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Save, Download, Upload, Trash2, ChevronRight, Info, Cloud, CloudOff, Link, RotateCcw, ShieldCheck, UserRound, FolderOpen, ExternalLink } from 'lucide-react';
+import { Save, Download, Upload, Trash2, ChevronRight, Info, Cloud, CloudOff, Link, RotateCcw, ShieldCheck, UserRound, FolderOpen, ExternalLink, Copy } from 'lucide-react';
 import { useTravelStore } from '../store/travelStore';
 import { exportTripAsFile, importTripFromFile, shareText } from '../utils/share';
 import { isSupabaseReady } from '../lib/supabase';
@@ -109,6 +109,19 @@ export function SettingsPage() {
     setTimeout(() => setShareMsg(''), 4000);
   }
 
+  async function handleCopyShareCode() {
+    if (!trip?.shareCode || !isAdmin) return;
+    await navigator.clipboard.writeText(trip.shareCode);
+    setShareMsg('📋 공유 코드 복사 완료! 앱 설정에서 코드를 입력하면 참가할 수 있어요.');
+    setTimeout(() => setShareMsg(''), 4000);
+  }
+
+  async function handleCopyAppUrl() {
+    await navigator.clipboard.writeText(`${window.location.origin}/`);
+    setShareMsg('📋 앱 주소 복사 완료! 이 주소에는 여행 공유 코드가 포함되지 않아요.');
+    setTimeout(() => setShareMsg(''), 4000);
+  }
+
   async function handleJoinCode() {
     const code = joinCode.trim().toUpperCase();
     if (!code) return;
@@ -194,7 +207,7 @@ export function SettingsPage() {
           {/* 이미 활성화된 경우 */}
           {trip?.cloudEnabled && trip.shareCode ? (
             <div className="p-4 space-y-3">
-              <div className="flex items-center justify-between rounded-xl bg-sky-50 px-4 py-3">
+              <div className="rounded-xl bg-sky-50 px-4 py-3">
                 <div>
                   <div className="mb-1 flex items-center gap-1.5">
                     <p className="text-xs font-bold text-sky-500">공유 코드</p>
@@ -202,21 +215,32 @@ export function SettingsPage() {
                   </div>
                   <p className="text-2xl font-black tracking-widest text-sky-700">{trip.shareCode}</p>
                 </div>
-                {isAdmin ? (
-                  <button onClick={handleCopyShareLink}
-                    className="flex items-center gap-1.5 rounded-xl bg-slate-950 px-3 py-2 text-sm font-bold text-white">
-                    <Link size={14} /> 링크 공유
-                  </button>
-                ) : (
+                {!isAdmin && (
                   <button disabled
-                    className="flex items-center gap-1.5 rounded-xl bg-white/70 px-3 py-2 text-sm font-bold text-slate-400">
+                    className="mt-3 flex items-center gap-1.5 rounded-xl bg-white/70 px-3 py-2 text-sm font-bold text-slate-400">
                     <UserRound size={14} /> 참여자
                   </button>
                 )}
               </div>
+              {isAdmin && (
+                <div className="grid grid-cols-2 gap-2">
+                  <button onClick={handleCopyShareCode}
+                    className="flex items-center justify-center gap-1.5 rounded-xl border border-sky-100 bg-white px-3 py-2.5 text-sm font-bold text-sky-700">
+                    <Copy size={14} /> 코드 복사
+                  </button>
+                  <button onClick={handleCopyShareLink}
+                    className="flex items-center justify-center gap-1.5 rounded-xl bg-slate-950 px-3 py-2.5 text-sm font-bold text-white">
+                    <Link size={14} /> 초대 링크 공유
+                  </button>
+                  <button onClick={handleCopyAppUrl}
+                    className="col-span-2 flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-bold text-slate-600">
+                    <ExternalLink size={14} /> 앱 주소만 복사
+                  </button>
+                </div>
+              )}
               <p className="text-center text-xs text-slate-400">
                 {isAdmin
-                  ? '관리자만 이 코드 또는 링크를 처음 공유할 수 있습니다'
+                  ? '코드, 자동 참가 링크, 코드 없는 앱 주소를 따로 공유할 수 있습니다'
                   : '참여자 권한으로 연결되어 관리자의 공유 링크만 사용할 수 있습니다'}
               </p>
               {isAdmin && (
